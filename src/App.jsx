@@ -5326,16 +5326,94 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
 
                     <p style={resultLineStyle}>
                       <strong>{t("forecastAgreement")}:</strong>{" "}
-                      {translateForecastAgreement(result.forecastAgreementLabel, language)}
+                      {translateForecastAgreement(
+                        result.forecastAgreementLabel,
+                        language,
+                        result
+                      )}
                     </p>
 
                     <p style={resultLineStyle}>
                       <strong>{t("weatherCheck")}:</strong> {translateCallTypeDisplay(result.callTypeDisplay, language)}
                     </p>
 
+                    {isPavingService(result.workType || form.workType) && (
+                      <>
+                        <p style={resultLineStyle}>
+                          <strong>{t("scoredPavingSetup")}:</strong>{" "}
+                          {getLocalizedOptionLabel(
+                            result.surfaceCondition || form.surfaceCondition,
+                            language
+                          )}
+                        </p>
+
+                        <p style={resultLineStyle}>
+                          <strong>{t("backendSurfaceInput")}:</strong>{" "}
+                          {getBackendSurfaceInputLabel(
+                            getResultScoringInput(result)?.surface_condition,
+                            language
+                          )}
+                        </p>
+
+                        {getPavingSetupScoringNote(result, language) && (
+                          <p style={scoringContextNoteStyle}>
+                            <strong>{t("scoringTreatment")}:</strong>{" "}
+                            {getPavingSetupScoringNote(result, language)}
+                          </p>
+                        )}
+                      </>
+                    )}
+
                     <p style={resultLineStyle}>
                       <strong>{t("sources")}:</strong> {result.sources}
                     </p>
+
+                    <div style={scoringAuditStyle}>
+                      <div style={scoringAuditHeaderStyle}>
+                        <strong>
+                          {t("supabaseScore")}: {result.score}{" "}
+                          {t("pointsLabel")}
+                        </strong>
+                        <span>
+                          {t("productionBucket")} {result.categoryPoints?.production ?? 0}{" · "}
+                          {t("qualityBucket")} {result.categoryPoints?.quality ?? 0}{" · "}
+                          {t("safetyBucket")} {result.categoryPoints?.safety ?? 0}
+                        </span>
+                      </div>
+
+                      {getVisibleScoreBreakdown(result).length > 0 && (
+                        <>
+                          <p style={scoringBreakdownTitleStyle}>
+                            {t("scoringBreakdown")}
+                          </p>
+                          <div style={scoringBreakdownListStyle}>
+                            {getVisibleScoreBreakdown(result).map((item, index) => (
+                              <div
+                                key={`${item?.variable_key || "score"}-${index}`}
+                                style={scoringBreakdownRowStyle}
+                              >
+                                <div style={scoringBreakdownTextStyle}>
+                                  <strong>
+                                    {item?.display_name || item?.variable_key || "Scoring rule"}
+                                  </strong>
+                                  <span>
+                                    {t("inputScored")}: {formatScoringInputValue(
+                                      item,
+                                      result,
+                                      language
+                                    )}
+                                  </span>
+                                </div>
+                                <strong style={scoringBreakdownPointsStyle}>
+                                  +{Number(item?.points || 0)}{" "}
+                                  {getScoringBucketLabel(item?.bucket, language)}
+                                </strong>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
 
                     <p style={resultLineStyle}>
                       <strong>{t("highestRainSignal")}:</strong>{" "}
@@ -5350,7 +5428,11 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
 
                     {result.workWindowReason && (
                       <p style={resultLineStyle}>
-                        <strong>{t("whyThisWindow")}:</strong>{" "}
+                        <strong>
+                          {result.hasReliableWindow
+                            ? t("whyThisWindow")
+                            : t("windowResult")}:
+                        </strong>{" "}
                         {result.workWindowReason}
                       </p>
                     )}
@@ -5405,6 +5487,15 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
   <p style={projectDetailsSecondaryStyle}>
     {formatDateLabel(form.workDate, language)} · {getLocalizedOptionLabel(form.workType, language)}
   </p>
+
+  {isPavingService(result.workType || form.workType) && (
+    <p style={projectDetailsSecondaryStyle}>
+      {t("pavingSetup")}: {getLocalizedOptionLabel(
+        result.surfaceCondition || form.surfaceCondition,
+        language
+      )}
+    </p>
+  )}
 </div>
 
 {currentResultJobHasFinalResult && currentResultJob && (
@@ -5787,6 +5878,19 @@ createCompanyHelper: "Create your company in about 60 seconds. No credit card re
     minimumWorkableWindowFinePrint: "A workable window requires at least 2 continuous hours. Rainfall amount, thunder wording, and lightning do not independently remove an hour.",
     workableWindowRequirements: "Workable Window Requirements",
     whyThisWindow: "Why this window",
+    windowResult: "Window Result",
+    scoredPavingSetup: "Scored Paving Setup",
+    backendSurfaceInput: "Backend Surface Input",
+    scoringTreatment: "Scoring Treatment",
+    exposedBaseContextOnly: "Recorded as site context. Exposure alone added 0 automatic points.",
+    exposedBasePointsApplied: "This saved assessment added {points} Quality points for exposed subgrade.",
+    supabaseScore: "Supabase Score",
+    scoringBreakdown: "Scoring Breakdown",
+    inputScored: "Input scored",
+    pointsLabel: "points",
+    productionBucket: "Production",
+    qualityBucket: "Quality",
+    safetyBucket: "Safety",
     otherQualifyingWindows: "Other qualifying windows",
     saveCompanySettings: "Save Company Settings",
     saveAndReturnDashboard: "Save & Return to Dashboard",
@@ -6100,6 +6204,19 @@ createCompanyHelper: "Cree su empresa en aproximadamente 60 segundos. No se requ
     minimumWorkableWindowFinePrint: "Una ventana trabajable requiere al menos 2 horas continuas. La cantidad de lluvia, el texto de tormenta y los rayos no eliminan una hora por sí solos.",
     workableWindowRequirements: "Requisitos de la ventana trabajable",
     whyThisWindow: "Por qué esta ventana",
+    windowResult: "Resultado de la ventana",
+    scoredPavingSetup: "Condición de pavimentación evaluada",
+    backendSurfaceInput: "Entrada de superficie del backend",
+    scoringTreatment: "Tratamiento de calificación",
+    exposedBaseContextOnly: "Registrado como contexto del sitio. La exposición por sí sola agregó 0 puntos automáticos.",
+    exposedBasePointsApplied: "Esta evaluación guardada agregó {points} puntos de Calidad por subrasante expuesta.",
+    supabaseScore: "Puntuación de Supabase",
+    scoringBreakdown: "Desglose de calificación",
+    inputScored: "Entrada evaluada",
+    pointsLabel: "puntos",
+    productionBucket: "Producción",
+    qualityBucket: "Calidad",
+    safetyBucket: "Seguridad",
     otherQualifyingWindows: "Otras ventanas que califican",
     saveCompanySettings: "Guardar configuración",
     saveAndReturnDashboard: "Guardar y volver al panel",
@@ -6547,17 +6664,29 @@ function translateWorkableWindowLabel(value, language = "en") {
   return value;
 }
 
-function translateForecastAgreement(value, language = "en") {
+function translateForecastAgreement(value, language = "en", result = null) {
   const normalized = String(value || "").toLowerCase();
+  const source = String(result?.higherRiskSource || "").trim();
+  const hasNamedSource =
+    source &&
+    !["neither", "available source", "backend scoring"].includes(
+      source.toLowerCase()
+    );
 
   if (language !== "es") {
-    if (normalized.includes("severe disagreement")) return "Forecast signals are mixed.";
+    if (normalized.includes("severe disagreement")) {
+      return hasNamedSource
+        ? `NWS and Open-Meteo strongly disagree. FieldCall used ${source} as the higher-risk approved source.`
+        : "NWS and Open-Meteo strongly disagree. FieldCall used the higher-risk approved source.";
+    }
     return value;
   }
 
   if (!normalized || normalized === "unavailable") return "No disponible";
   if (normalized.includes("forecast signals are mixed") || normalized.includes("severe disagreement")) {
-    return "Las señales del pronóstico son mixtas.";
+    return hasNamedSource
+      ? `NWS y Open-Meteo discrepan considerablemente. FieldCall usó ${source} como la fuente aprobada de mayor riesgo.`
+      : "NWS y Open-Meteo discrepan considerablemente. FieldCall usó la fuente aprobada de mayor riesgo.";
   }
   if (normalized.includes("good") || normalized.includes("strong")) return "Buen acuerdo entre fuentes";
   if (normalized.includes("moderate")) return "Acuerdo moderado entre fuentes";
@@ -6713,6 +6842,36 @@ function formatInchesForDisplay(value) {
 }
 
 function formatRainfallAssessmentDisplay(result) {
+  const scoringInput = getResultScoringInput(result);
+  const nwsRaw = scoringInput?.nws_qpf_rainfall_total;
+  const openMeteoRaw = scoringInput?.open_meteo_rainfall_total;
+  const hasNws =
+    nwsRaw !== null &&
+    nwsRaw !== undefined &&
+    nwsRaw !== "" &&
+    Number.isFinite(Number(nwsRaw));
+  const hasOpenMeteo =
+    openMeteoRaw !== null &&
+    openMeteoRaw !== undefined &&
+    openMeteoRaw !== "" &&
+    Number.isFinite(Number(openMeteoRaw));
+
+  if (hasNws || hasOpenMeteo) {
+    const sourceValues = [];
+
+    if (hasNws) {
+      sourceValues.push(`NWS QPF: ${formatInchesForDisplay(nwsRaw)}`);
+    }
+
+    if (hasOpenMeteo) {
+      sourceValues.push(
+        `Open-Meteo: ${formatInchesForDisplay(openMeteoRaw)}`
+      );
+    }
+
+    return sourceValues.join(" · ");
+  }
+
   const hasMinimum =
     result?.rainfallTotalMin !== null &&
     result?.rainfallTotalMin !== undefined &&
@@ -6741,6 +6900,133 @@ function formatRainfallAssessmentDisplay(result) {
       result?.rainfallAssessedPeriod ?? result?.totalPrecipitationInches
     ) || "Unavailable"
   );
+}
+
+function createScoringInputAuditSnapshot(input) {
+  if (!input || typeof input !== "object") return null;
+
+  const { hourly_weather: hourlyWeather, ...auditFields } = input;
+
+  return {
+    ...auditFields,
+    hourly_weather_count: Array.isArray(hourlyWeather)
+      ? hourlyWeather.length
+      : 0,
+  };
+}
+
+function getResultScoringInput(result) {
+  return (
+    result?.effectiveScoringInput ||
+    result?.backendScoring?.effective_input ||
+    result?.combinedSourceProfile ||
+    result?.rawBackendInput ||
+    {}
+  );
+}
+
+function getVisibleScoreBreakdown(result) {
+  return (Array.isArray(result?.scoreBreakdown) ? result.scoreBreakdown : [])
+    .filter((item) => Number(item?.points) !== 0);
+}
+
+function getScoringBucketLabel(bucket, language = "en") {
+  const normalized = String(bucket || "").toLowerCase();
+
+  if (language === "es") {
+    if (normalized === "production") return "Producción";
+    if (normalized === "quality") return "Calidad";
+    if (normalized === "safety") return "Seguridad";
+  }
+
+  if (normalized === "production") return "Production";
+  if (normalized === "quality") return "Quality";
+  if (normalized === "safety") return "Safety";
+  return bucket || "Score";
+}
+
+function getBackendSurfaceInputLabel(value, language = "en") {
+  const normalized = String(value || "").toLowerCase();
+
+  if (language === "es") {
+    if (normalized === "exposed_base") return "Base/subrasante expuesta";
+    if (normalized === "milled_surface") return "Superficie fresada";
+    if (normalized === "existing_surface") return "Superficie existente / recapa";
+  }
+
+  if (normalized === "exposed_base") return "Exposed base/subgrade";
+  if (normalized === "milled_surface") return "Milled surface";
+  if (normalized === "existing_surface") return "Existing surface / overlay";
+  return value || (language === "es" ? "No disponible" : "Unavailable");
+}
+
+function getPavingSetupScoringNote(result, language = "en") {
+  const scoringInput = getResultScoringInput(result);
+  const isExposed =
+    result?.surfaceCondition === "Subgrade currently exposed" ||
+    scoringInput?.surface_condition === "exposed_base";
+
+  if (!isExposed) return "";
+
+  const baseExposureItem = getVisibleScoreBreakdown(result).find(
+    (item) => item?.variable_key === "base_exposure"
+  );
+  const points = Number(baseExposureItem?.points || 0);
+
+  if (points > 0) {
+    return translateAppText(language, "exposedBasePointsApplied", {
+      points,
+    });
+  }
+
+  return translateAppText(language, "exposedBaseContextOnly");
+}
+
+function formatScoringInputValue(item, result, language = "en") {
+  const variableKey = String(item?.variable_key || "");
+  const rawValue = item?.input_value;
+
+  if (variableKey === "base_exposure") {
+    return getBackendSurfaceInputLabel(
+      getResultScoringInput(result)?.surface_condition || rawValue,
+      language
+    );
+  }
+
+  if (rawValue === null || rawValue === undefined || rawValue === "") {
+    return language === "es" ? "No disponible" : "Unavailable";
+  }
+
+  if (variableKey.includes("rainfall_total") || variableKey.includes("rainfall_within")) {
+    return formatInchesForDisplay(rawValue) || String(rawValue);
+  }
+
+  if (variableKey.includes("probability")) {
+    const value = Number(rawValue);
+    return Number.isFinite(value) ? `${Math.round(value)}%` : String(rawValue);
+  }
+
+  if (variableKey.includes("hours")) {
+    const value = Number(rawValue);
+    if (Number.isFinite(value)) {
+      const unit = language === "es"
+        ? value === 1
+          ? "hora"
+          : "horas"
+        : value === 1
+        ? "hour"
+        : "hours";
+      return `${value} ${unit}`;
+    }
+  }
+
+  if (typeof rawValue === "string") {
+    return rawValue
+      .replaceAll("_", " ")
+      .replace(/\b\w/g, (letter) => letter.toUpperCase());
+  }
+
+  return String(rawValue);
 }
 
 function formatWorkWindowRequirements(result, language = "en") {
@@ -7069,7 +7355,19 @@ callTypeDisplay: result.callTypeDisplay,
 
     openMeteoSource: result.openMeteoSource,
     nwsSource: result.nwsSource,
-    combinedSourceProfile: result.combinedSourceProfile,
+    rawBackendInput: createScoringInputAuditSnapshot(
+      result.rawBackendInput || result.backendInput
+    ),
+    effectiveScoringInput:
+      result.effectiveScoringInput ||
+      result.backendScoring?.effective_input ||
+      result.combinedSourceProfile ||
+      null,
+    combinedSourceProfile:
+      result.effectiveScoringInput ||
+      result.backendScoring?.effective_input ||
+      result.combinedSourceProfile ||
+      null,
 
     surfaceCondition: result.surfaceCondition,
     baseExposed: result.baseExposed,
@@ -8186,7 +8484,7 @@ scoreText: backendScoreText,
     riskFactors: Array.isArray(data?.risk_factors)
   ? data.risk_factors
   : getBackendRiskFactors({
-      backendInput,
+      backendInput: effectiveBackendInput,
       hardStopTriggered,
       productionScore,
       qualityScore,
@@ -8277,7 +8575,7 @@ scoreText: backendScoreText,
     whyPoints: Array.isArray(data?.why_points)
   ? data.why_points
   : getBackendWhyPoints({
-      backendInput,
+      backendInput: effectiveBackendInput,
       productionScore,
       qualityScore,
       safetyScore,
@@ -8288,8 +8586,8 @@ scoreText: backendScoreText,
     nwsAvailable: Boolean(nwsWeather?.available),
     nwsPeakRainProbability: effectiveBackendInput.nws_peak_rain_probability,
     nwsPeakRainProbabilityDisplay:
-      typeof backendInput.nws_peak_rain_probability === "number"
-        ? `${backendInput.nws_peak_rain_probability}%`
+      typeof effectiveBackendInput.nws_peak_rain_probability === "number"
+        ? `${effectiveBackendInput.nws_peak_rain_probability}%`
         : "Unavailable",
     nwsPeakRainProbabilityHour: nwsWeather?.peakRainProbabilityHour ?? null,
     nwsPeakRainProbabilityHourDisplay:
@@ -8299,11 +8597,12 @@ scoreText: backendScoreText,
     nwsSignal: nwsWeather?.available ? "Backend scored" : "UNAVAILABLE",
     openMeteoSignal: openMeteoWeather?.hourly?.time ? "Backend scored" : "UNAVAILABLE",
 
-    forecastAgreementLabel: backendInput.forecast_agreement_label,
-    forecastAgreementShortLabel: backendInput.forecast_agreement,
-    sourceSpreadLevel: backendInput.forecast_agreement,
+    forecastAgreementLabel: effectiveBackendInput.forecast_agreement_label,
+    forecastAgreementShortLabel: effectiveBackendInput.forecast_agreement,
+    sourceSpreadLevel: effectiveBackendInput.forecast_agreement,
     sourceSpreadPoints: null,
-    higherRiskSource: backendInput.higher_risk_source || "Backend scoring",
+    higherRiskSource:
+      effectiveBackendInput.higher_risk_source || "Backend scoring",
 
     operationalNote: hardStopTriggered
   ? "FieldCall identified a hard stop condition inside the final call window."
@@ -8311,10 +8610,12 @@ scoreText: backendScoreText,
 
     backendInput,
     backendScoring: data,
+    rawBackendInput: createScoringInputAuditSnapshot(backendInput),
+    effectiveScoringInput: effectiveBackendInput,
     communications: data?.communications || {},
     openMeteoSource: null,
     nwsSource: null,
-    combinedSourceProfile: backendInput,
+    combinedSourceProfile: effectiveBackendInput,
 
     surfaceCondition: isPavingService(form.workType) ? form.surfaceCondition || "Subgrade exposed & paved same day" : "Subgrade exposed & paved same day",
     baseExposed: isPavingService(form.workType)
@@ -8336,6 +8637,12 @@ async function saveAssessmentToBackend({
     throw new Error("Assessment history save failed: Supabase is not configured.");
   }
 
+  const effectiveInput = scoringResult?.effective_input || backendInput;
+  const scoringResultForStorage = {
+    ...(scoringResult || {}),
+    raw_input_data: createScoringInputAuditSnapshot(backendInput),
+  };
+
   const { data: savedAssessment, error } = await supabase
   .from("assessments")
   .insert({
@@ -8351,8 +8658,8 @@ async function saveAssessmentToBackend({
 
     is_final_call_window: timing.isFinal,
 
-    input_data: backendInput,
-    scoring_result: scoringResult,
+    input_data: effectiveInput,
+    scoring_result: scoringResultForStorage,
 
     signal: scoringResult?.display_signal ?? scoringResult?.signal ?? null,
 total_score: scoringResult?.total_score ?? null,
@@ -8361,8 +8668,8 @@ quality_score: scoringResult?.quality_score ?? null,
 safety_score: scoringResult?.safety_score ?? null,
 
     sources_checked:
-      backendInput?.nws_qpf_rainfall_total !== null &&
-      backendInput?.nws_qpf_rainfall_total !== undefined
+      effectiveInput?.nws_qpf_rainfall_total !== null &&
+      effectiveInput?.nws_qpf_rainfall_total !== undefined
         ? "NWS hourly forecast and grid QPF, Open-Meteo"
         : "NWS hourly forecast, Open-Meteo",
   })
@@ -8879,9 +9186,11 @@ function getAirTemperatureCondition(hours) {
 
   if (low < 40) return "below_40F";
   if (low < 45) return "40F_to_44F";
-  if (low < 50 && rising) return "48F_to_49F_and_rising_into_upper_50s";
+  if (low >= 48 && low < 50 && rising) {
+    return "48F_to_49F_and_rising_into_upper_50s";
+  }
   if (low < 50) return "45F_to_49F_not_rising";
-  return rising ? "50F_or_higher_and_rising" : "45F_to_49F_not_rising";
+  return "50F_or_higher_and_rising";
 }
 
 function getLightningRiskFromText(text) {
@@ -8914,7 +9223,6 @@ function getBackendRiskFactors({
   if (backendInput.workable_window_hours < 6) factors.push("Limited workable production window");
   if (backendInput.peak_rain_probability >= 65 && backendInput.peak_occurs_core_hours) factors.push("High peak rain chance during core hours");
   if (backendInput.air_temperature_condition !== "50F_or_higher_and_rising") factors.push("Air temperature below preferred paving baseline");
-  if (backendInput.surface_condition === "exposed_base") factors.push("Subgrade currently exposed increases moisture sensitivity");
   if (backendInput.lightning_risk !== "none") factors.push("Lightning or thunderstorm risk present");
 
   if (!factors.length) factors.push("Normal monitoring still required");
@@ -12357,6 +12665,73 @@ const weatherDetailsContentStyle = {
   borderTop: "1px solid #e2e8f0",
   padding: "10px 12px",
   background: "#f8fafc",
+};
+
+const scoringContextNoteStyle = {
+  margin: "6px 0",
+  padding: "8px 9px",
+  border: "1px solid #dbeafe",
+  borderRadius: "10px",
+  background: "#eff6ff",
+  color: "#1e3a5f",
+  fontSize: "11px",
+  lineHeight: "16px",
+  fontWeight: 700,
+};
+
+const scoringAuditStyle = {
+  margin: "9px 0",
+  padding: "9px",
+  border: "1px solid #e2e8f0",
+  borderRadius: "12px",
+  background: "#ffffff",
+};
+
+const scoringAuditHeaderStyle = {
+  display: "grid",
+  gap: "3px",
+  color: "#0f172a",
+  fontSize: "12px",
+  lineHeight: "16px",
+};
+
+const scoringBreakdownTitleStyle = {
+  margin: "9px 0 5px",
+  color: "#64748b",
+  fontSize: "10px",
+  fontWeight: 900,
+  textTransform: "uppercase",
+  letterSpacing: "0.05em",
+};
+
+const scoringBreakdownListStyle = {
+  display: "grid",
+  gap: "6px",
+};
+
+const scoringBreakdownRowStyle = {
+  display: "flex",
+  alignItems: "flex-start",
+  justifyContent: "space-between",
+  gap: "10px",
+  paddingTop: "6px",
+  borderTop: "1px solid #f1f5f9",
+};
+
+const scoringBreakdownTextStyle = {
+  display: "grid",
+  gap: "2px",
+  color: "#243b53",
+  fontSize: "11px",
+  lineHeight: "15px",
+};
+
+const scoringBreakdownPointsStyle = {
+  flex: "0 0 auto",
+  color: "#0f172a",
+  fontSize: "11px",
+  lineHeight: "15px",
+  textAlign: "right",
 };
 
 const projectDetailsCardStyle = {
