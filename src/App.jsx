@@ -4376,7 +4376,7 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
     <span style={weatherConnectedIconStyle}>☁</span>
     <div>
       <strong>{t("weatherDataConnected")}</strong>
-      <p style={miniTextStyle}>{t("weatherDataConnectedHelp")}</p>
+      <p style={miniTextStyle}>{t("weatherDataConnectedHelp")} {weatherConnectedTime}</p>
     </div>
   </div>
 
@@ -4424,7 +4424,7 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
     onClick={() => setScreen("trustCenter")}
     style={subtleMethodologyLinkStyle}
   >
-    {t("howRecommendationsWork")} <span>›</span>
+    <span aria-hidden="true">ⓘ</span> {t("howRecommendationsWork")} <span>›</span>
   </button>
 
   {nonRoutinePushAlertMessage && (
@@ -5639,13 +5639,13 @@ createCompanyHelper: "Create your company in about 60 seconds. No credit card re
     retry: "Retry",
     messages: "Messages",
     syncing: "Syncing...",
-    refresh: "Sync",
+    refresh: "Refresh",
     noSavedJobs: "No saved jobs yet.",
     finalCallsReady: "Final Calls Ready",
     finalCallsHelp: "Final calls for review.",
     noFinalCalls: "No final calls ready.",
     callsToReview: "Calls to Review",
-    callsToReviewHelp: "Final calls and elevated preliminary risks that need attention.",
+    callsToReviewHelp: "Jobs requiring your attention.",
     noCallsToReview: "No calls need review right now.",
     tomorrowsCalls: "Tomorrow's Calls",
     tomorrowsCallsHelp: "Calls that need communication before tomorrow’s work.",
@@ -5659,7 +5659,7 @@ createCompanyHelper: "Create your company in about 60 seconds. No credit card re
     callHistoryLimitHelp: "Showing your 10 most recent calls.",
     noLockedCalls: "No call history yet.",
     weatherDataConnected: "Monitoring Active",
-    weatherDataConnectedHelp: "Weather sources connected and monitoring current.",
+    weatherDataConnectedHelp: "NWS • Open-Meteo • Updated",
     howRecommendationsWork: "How recommendations work",
     dashboardPreferences: "Dashboard",
     showFieldProofDashboard: "Show Field Proof on dashboard",
@@ -5952,13 +5952,13 @@ createCompanyHelper: "Cree su empresa en aproximadamente 60 segundos. No se requ
     retry: "Reintentar",
     messages: "Mensajes",
     syncing: "Sincronizando...",
-    refresh: "Sync",
+    refresh: "Actualizar",
     noSavedJobs: "Todavía no hay trabajos guardados.",
     finalCallsReady: "Decisiones finales listas",
     finalCallsHelp: "Decisiones finales para revisar.",
     noFinalCalls: "No hay decisiones finales listas.",
     callsToReview: "Decisiones para revisar",
-    callsToReviewHelp: "Decisiones finales y riesgos preliminares elevados que requieren atención.",
+    callsToReviewHelp: "Trabajos que requieren su atención.",
     noCallsToReview: "No hay decisiones que revisar ahora.",
     tomorrowsCalls: "Decisiones de mañana",
     tomorrowsCallsHelp: "Decisiones que necesitan comunicación antes del trabajo de mañana.",
@@ -5972,7 +5972,7 @@ createCompanyHelper: "Cree su empresa en aproximadamente 60 segundos. No se requ
     callHistoryLimitHelp: "Se muestran sus 10 decisiones más recientes.",
     noLockedCalls: "Todavía no hay historial de decisiones.",
     weatherDataConnected: "Monitoreo activo",
-    weatherDataConnectedHelp: "Fuentes conectadas y monitoreo actualizado.",
+    weatherDataConnectedHelp: "NWS • Open-Meteo • Actualizado",
     howRecommendationsWork: "Cómo funcionan las recomendaciones",
     dashboardPreferences: "Panel",
     showFieldProofDashboard: "Mostrar Field Proof en el panel",
@@ -10396,13 +10396,13 @@ const premiumMiniCardStyle = {
 };
 
 const appActionsCardStyle = {
-  marginTop: "9px",
+  marginTop: "7px",
   background: "rgba(255,255,255,0.92)",
   borderRadius: "18px",
-  padding: "10px",
+  padding: "9px 10px 8px",
   border: "1px solid rgba(226, 232, 240, 0.90)",
   display: "grid",
-  gap: "9px",
+  gap: "7px",
   boxShadow: "0 8px 20px rgba(15, 23, 42, 0.05)",
 };
 
@@ -10418,7 +10418,7 @@ const appActionsWeatherStyle = {
   minWidth: 0,
   color: "#0f172a",
   fontSize: "12px",
-  padding: "2px 2px 9px",
+  padding: "1px 2px 7px",
   borderBottom: "1px solid #eef2f7",
 };
 
@@ -10443,7 +10443,7 @@ const appActionsButtonRowStyle = {
 
 const appActionButtonStyle = {
   width: "100%",
-  padding: "8px 6px",
+  padding: "7px 6px",
   borderRadius: "11px",
   border: "1px solid #e2e8f0",
   background: "#f8fafc",
@@ -10455,8 +10455,8 @@ const appActionButtonStyle = {
 
 const subtleMethodologyLinkStyle = {
   width: "100%",
-  marginTop: "10px",
-  padding: "6px 4px 0",
+  marginTop: "6px",
+  padding: "5px 4px 1px",
   border: 0,
   background: "transparent",
   color: "#718096",
@@ -10665,13 +10665,13 @@ const emptyStateButtonStyle = {
 
 const jobListStyle = {
   display: "grid",
-  gap: "7px",
-  marginTop: "8px",
+  gap: "6px",
+  marginTop: "6px",
 };
 
 const queueSectionHeaderStyle = {
   marginTop: "3px",
-  padding: "8px 10px",
+  padding: "7px 10px",
   borderRadius: "14px",
   background: "#f8fafc",
   border: "1px solid #e2e8f0",
@@ -10766,8 +10766,8 @@ const drawerCountPillStyle = {
 
 const preliminaryDrawerButtonStyle = {
   width: "100%",
-  marginTop: "8px",
-  padding: "11px 12px",
+  marginTop: "6px",
+  padding: "9px 12px",
   borderRadius: "14px",
   border: "1px solid #e2e8f0",
   background: "#ffffff",
@@ -10789,7 +10789,7 @@ const preliminaryDrawerContentStyle = {
 const jobCardStyle = {
   border: "1px solid #e2e8f0",
   borderRadius: "14px",
-  padding: "9px 10px",
+  padding: "7px 10px",
   background: "#ffffff",
   boxShadow: "0 4px 12px rgba(15, 23, 42, 0.03)",
   overflow: "hidden",
@@ -10797,7 +10797,7 @@ const jobCardStyle = {
 
 const jobWorkDateStyle = {
   margin: 0,
-  paddingBottom: "7px",
+  paddingBottom: "6px",
   borderBottom: "1px solid rgba(148, 163, 184, 0.28)",
   color: "#0f172a",
   fontSize: "12px",
@@ -10813,7 +10813,7 @@ const jobCardContentStyle = {
 const jobCompactTopRowStyle = {
   display: "grid",
   gridTemplateColumns: "58px minmax(0, 1fr)",
-  gap: "10px",
+  gap: "8px",
   alignItems: "center",
   minWidth: 0,
 };
@@ -10961,8 +10961,8 @@ const latestResultLineStyle = {
 };
 
 const compactReasonRowStyle = {
-  marginTop: "8px",
-  paddingTop: "8px",
+  marginTop: "6px",
+  paddingTop: "6px",
   borderTop: "1px solid rgba(226, 232, 240, 0.9)",
   display: "grid",
   gridTemplateColumns: "34px 1fr",
@@ -11006,7 +11006,7 @@ const jobButtonGridStyle = {
 
 const compactJobButtonGridStyle = {
   display: "flex",
-  gap: "8px",
+  gap: "7px",
   marginTop: 0,
   minWidth: 0,
   width: "100%",
@@ -11074,8 +11074,8 @@ const viewJobButtonStyle = {
   background: "#ffffff",
   color: "#071528",
   borderRadius: "11px",
-  padding: "9px 8px",
-  minHeight: "36px",
+  padding: "8px 8px",
+  minHeight: "34px",
   fontSize: "12px",
   lineHeight: "14px",
   fontWeight: 900,
@@ -11092,8 +11092,8 @@ const runJobButtonStyle = {
   background: "#071528",
   color: "white",
   borderRadius: "11px",
-  padding: "9px 8px",
-  minHeight: "36px",
+  padding: "8px 8px",
+  minHeight: "34px",
   fontSize: "12px",
   lineHeight: "14px",
   fontWeight: 900,
@@ -11164,8 +11164,8 @@ const messagesJobButtonStyle = {
 };
 
 const jobsSyncFooterStyle = {
-  marginTop: "10px",
-  paddingTop: "10px",
+  marginTop: "8px",
+  paddingTop: "8px",
   borderTop: "1px solid #eef2f7",
   color: "#64748b",
   fontSize: "11px",
@@ -11971,8 +11971,8 @@ const checkboxHelpStyle = {
 const primaryButtonStyle = {
   width: "100%",
   marginTop: "10px",
-  padding: "13px",
-  borderRadius: "16px",
+  padding: "11px 13px",
+  borderRadius: "15px",
   border: "none",
   background: "#071528",
   color: "white",
