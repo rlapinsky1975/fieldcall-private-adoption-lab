@@ -5475,16 +5475,6 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
     />
 )}
 
-{!guestMode && (
-  <button
-    type="button"
-    onClick={() => setScreen("trustCenter")}
-    style={secondaryButtonStyle}
-  >
-    {language === "es" ? "Cómo se construye esta decisión" : "How this call is built"}
-  </button>
-)}
-
               <button onClick={goHome} style={guestMode ? secondaryButtonStyle : primaryButtonStyle}>
                 {guestMode
                   ? language === "es"
