@@ -453,11 +453,16 @@ export function SignalTimeline({ language = "en", events = [] }) {
     (a, b) => new Date(a.checked_at) - new Date(b.checked_at)
   );
   const displayEvents = chronologicalEvents
-    .map((event, index) => ({
+  .map((event, index) => ({
+    event,
+    definingReason: getMonitoringReason(
       event,
-      definingReason: getMonitoringReason(event, chronologicalEvents[index - 1], language),
-    }))
-    .reverse();
+      chronologicalEvents[index - 1],
+      language
+    ),
+  }))
+  .reverse()
+  .slice(0, 5);
 
   return (
     <section className="fcx-card fcx-timeline">
@@ -473,7 +478,9 @@ export function SignalTimeline({ language = "en", events = [] }) {
           <p>{c.timelineHelp}</p>
         </div>
         <div className="fcx-timeline-toggle-meta">
-          <span>{events.length} {events.length === 1 ? c.monitoringPoint : c.monitoringPoints}</span>
+          <span>
+  {Math.min(events.length, 5)} most recent
+</span>
           <strong>{expanded ? "−" : "+"}</strong>
         </div>
       </button>
