@@ -31,16 +31,25 @@ const COPY = {
     go: "GO",
     delay: "DELAY",
     noGo: "NO GO",
-    finalTitle: "My Final Call",
-    finalHelp: "FieldCall provides the framework. You still own the decision.",
-    localContext: "Local context FieldCall cannot see",
+    finalTitle: "Your Decision",
+    finalHelp: "FieldCall provides the recommendation. You own the final decision.",
+    localContext: "Local Conditions",
+    localContextHelp: "Add information that influenced your decision but is not reflected in the forecast.",
     localPlaceholder: "Site moisture, drainage, haul distance, client restrictions…",
-    saveCall: "Save my call",
-    saved: "Your call is saved.",
-    comparison: "FieldCall assessment",
-    yourDecision: "Your decision",
-    timelineTitle: "How this call changed",
-    timelineHelp: "Each check is preserved so you can see what moved and when.",
+    saveDecision: "Save Decision",
+    saveGoDecision: "Save GO Decision",
+    saveDelayDecision: "Save Delay Decision",
+    saveNoGoDecision: "Save No Go Decision",
+    goDecisionSaved: "GO Decision Saved",
+    delayDecisionSaved: "Delay Decision Saved",
+    noGoDecisionSaved: "No Go Decision Saved",
+    comparison: "FieldCall Recommendation",
+    yourDecision: "Your Decision",
+    timelineTitle: "Monitoring History",
+    timelineHelp: "Review how the recommendation evolved over time.",
+    monitoringPoint: "monitoring point",
+    monitoringPoints: "monitoring points",
+    latestPoint: "Latest monitoring point",
     noTimeline: "The first monitoring point will appear after this job is saved and checked.",
     outcomeTitle: "What happened on this job?",
     outcomeHelp: "Two quick answers help build proof and improve the framework.",
@@ -85,16 +94,25 @@ const COPY = {
     go: "ADELANTE",
     delay: "DEMORAR",
     noGo: "NO PROCEDER",
-    finalTitle: "Mi decisión final",
-    finalHelp: "FieldCall aporta el marco. Usted sigue siendo responsable de la decisión.",
-    localContext: "Contexto local que FieldCall no puede ver",
+    finalTitle: "Su decisión",
+    finalHelp: "FieldCall aporta la recomendación. Usted toma la decisión final.",
+    localContext: "Condiciones locales",
+    localContextHelp: "Agregue información que influyó en su decisión pero no aparece en el pronóstico.",
     localPlaceholder: "Humedad, drenaje, distancia de acarreo, restricciones del cliente…",
-    saveCall: "Guardar mi decisión",
-    saved: "Su decisión está guardada.",
-    comparison: "Evaluación de FieldCall",
+    saveDecision: "Guardar decisión",
+    saveGoDecision: "Guardar decisión ADELANTE",
+    saveDelayDecision: "Guardar decisión DEMORAR",
+    saveNoGoDecision: "Guardar decisión NO PROCEDER",
+    goDecisionSaved: "Decisión ADELANTE guardada",
+    delayDecisionSaved: "Decisión DEMORAR guardada",
+    noGoDecisionSaved: "Decisión NO PROCEDER guardada",
+    comparison: "Recomendación de FieldCall",
     yourDecision: "Su decisión",
-    timelineTitle: "Cómo cambió esta decisión",
-    timelineHelp: "Cada revisión se conserva para mostrar qué cambió y cuándo.",
+    timelineTitle: "Historial de monitoreo",
+    timelineHelp: "Revise cómo evolucionó la recomendación con el tiempo.",
+    monitoringPoint: "punto de monitoreo",
+    monitoringPoints: "puntos de monitoreo",
+    latestPoint: "Punto de monitoreo más reciente",
     noTimeline: "El primer punto aparecerá después de guardar y revisar este trabajo.",
     outcomeTitle: "¿Qué ocurrió en este trabajo?",
     outcomeHelp: "Dos respuestas rápidas ayudan a crear evidencia y mejorar el marco.",
@@ -295,20 +313,39 @@ export function ContractorDecisionPanel({
     setSaved(Boolean(ok));
   }
 
+  const saveLabel =
+    decision === "GO"
+      ? c.saveGoDecision
+      : decision === "DELAY"
+      ? c.saveDelayDecision
+      : decision === "NO GO"
+      ? c.saveNoGoDecision
+      : c.saveDecision;
+
+  const savedLabel =
+    decision === "GO"
+      ? c.goDecisionSaved
+      : decision === "DELAY"
+      ? c.delayDecisionSaved
+      : c.noGoDecisionSaved;
+
   return (
     <section className="fcx-card fcx-decision">
       <div className="fcx-card-heading compact">
         <div>
-          <span className="fcx-eyebrow">JUDGMENT STAYS FINAL</span>
+          <span className="fcx-eyebrow">{c.yourDecision.toUpperCase()}</span>
           <h3>{c.finalTitle}</h3>
           <p>{c.finalHelp}</p>
         </div>
       </div>
 
-      <div className="fcx-compare-row">
-        <div><span>{c.comparison}</span><SignalPill signal={fieldcallSignal} /></div>
-        {saved && <div><span>{c.yourDecision}</span><SignalPill signal={decision} /></div>}
+      <div className="fcx-recommendation-block">
+        <span>{c.comparison}</span>
+        <SignalPill signal={fieldcallSignal} />
       </div>
+
+      <div className="fcx-decision-divider" aria-hidden="true">↓</div>
+      <div className="fcx-decision-choice-label">{c.yourDecision}</div>
 
       <div className="fcx-choice-grid">
         {["GO", "DELAY", "NO GO"].map((value) => (
@@ -325,6 +362,7 @@ export function ContractorDecisionPanel({
 
       <label className="fcx-text-field">
         <span>{c.localContext}</span>
+        <small className="fcx-field-help">{c.localContextHelp}</small>
         <textarea
           value={localContext}
           onChange={(event) => { setLocalContext(event.target.value); setSaved(false); }}
@@ -333,43 +371,134 @@ export function ContractorDecisionPanel({
       </label>
 
       <button type="button" className="fcx-primary" onClick={handleSave} disabled={!decision || saving}>
-        {saving ? "…" : saved ? `✓ ${c.saved}` : c.saveCall}
+        {saving ? "…" : saved ? `✓ ${savedLabel}` : saveLabel}
       </button>
     </section>
   );
 }
 
+function cleanMonitoringText(value) {
+  return String(value || "").trim().replace(/\s+/g, " ");
+}
+
+function getMonitoringWindow(event) {
+  return cleanMonitoringText(
+    event?.window_label ||
+      event?.result_snapshot?.bestWindowLabel ||
+      event?.result_snapshot?.window
+  );
+}
+
+function getMonitoringReason(event, previousEvent, language) {
+  const spanish = language === "es";
+  const currentSignal = cleanMonitoringText(event?.signal).toUpperCase();
+  const previousSignal = cleanMonitoringText(previousEvent?.signal).toUpperCase();
+  const currentWindow = getMonitoringWindow(event);
+  const previousWindow = getMonitoringWindow(previousEvent);
+  const currentReason = cleanMonitoringText(event?.reason);
+  const previousReason = cleanMonitoringText(previousEvent?.reason);
+
+  if (!previousEvent) {
+    return currentReason || (spanish ? "Punto de monitoreo inicial registrado." : "Initial monitoring point recorded.");
+  }
+
+  if (currentSignal && previousSignal && currentSignal !== previousSignal) {
+    return spanish
+      ? `La recomendación cambió de ${previousSignal} a ${currentSignal}.`
+      : `Recommendation changed from ${previousSignal} to ${currentSignal}.`;
+  }
+
+  if (currentWindow !== previousWindow) {
+    if (!currentWindow || /unavailable|no reliable|no workable/i.test(currentWindow)) {
+      return spanish
+        ? "Ya no hay una ventana de trabajo confiable."
+        : "A reliable work window is no longer available.";
+    }
+
+    if (!previousWindow || /unavailable|no reliable|no workable/i.test(previousWindow)) {
+      return spanish
+        ? `Ahora hay una ventana de trabajo disponible: ${currentWindow}.`
+        : `A workable window is now available: ${currentWindow}.`;
+    }
+
+    return spanish
+      ? `La ventana de trabajo cambió a ${currentWindow}.`
+      : `Workable window changed to ${currentWindow}.`;
+  }
+
+  if (currentReason && currentReason !== previousReason) {
+    return currentReason;
+  }
+
+  const hasCurrentScore = event?.score !== null && event?.score !== undefined && event?.score !== "";
+  const hasPreviousScore = previousEvent?.score !== null && previousEvent?.score !== undefined && previousEvent?.score !== "";
+  const currentScore = Number(event?.score);
+  const previousScore = Number(previousEvent?.score);
+  if (hasCurrentScore && hasPreviousScore && Number.isFinite(currentScore) && Number.isFinite(previousScore) && Math.abs(currentScore - previousScore) >= 3) {
+    const direction = currentScore > previousScore
+      ? (spanish ? "aumentó" : "increased")
+      : (spanish ? "disminuyó" : "decreased");
+    return spanish
+      ? `La puntuación general ${direction} de ${previousScore} a ${currentScore}.`
+      : `Overall score ${direction} from ${previousScore} to ${currentScore}.`;
+  }
+
+  return spanish ? "Sin cambios importantes." : "No material change.";
+}
+
 export function SignalTimeline({ language = "en", events = [] }) {
   const c = useCopy(language);
-  const displayEvents = events.slice(-5).reverse();
+  const [expanded, setExpanded] = useState(false);
+  const chronologicalEvents = [...events].sort(
+    (a, b) => new Date(a.checked_at) - new Date(b.checked_at)
+  );
+  const displayEvents = chronologicalEvents
+    .map((event, index) => ({
+      event,
+      definingReason: getMonitoringReason(event, chronologicalEvents[index - 1], language),
+    }))
+    .reverse();
 
   return (
     <section className="fcx-card fcx-timeline">
-      <div className="fcx-card-heading compact">
+      <button
+        type="button"
+        className="fcx-timeline-toggle"
+        onClick={() => setExpanded((current) => !current)}
+        aria-expanded={expanded}
+      >
         <div>
-          <span className="fcx-eyebrow">MONITORING HISTORY</span>
+          <span className="fcx-eyebrow">MONITORING</span>
           <h3>{c.timelineTitle}</h3>
           <p>{c.timelineHelp}</p>
         </div>
-      </div>
+        <div className="fcx-timeline-toggle-meta">
+          <span>{events.length} {events.length === 1 ? c.monitoringPoint : c.monitoringPoints}</span>
+          <strong>{expanded ? "−" : "+"}</strong>
+        </div>
+      </button>
 
-      {displayEvents.length === 0 ? (
-        <p className="fcx-empty">{c.noTimeline}</p>
-      ) : (
-        <div className="fcx-event-list">
-          {displayEvents.map((event, index) => (
-            <div className="fcx-event" key={event.id}>
-              <div className="fcx-event-line"><span /></div>
-              <div className="fcx-event-body">
-                <div className="fcx-event-top">
-                  <SignalPill signal={event.signal} />
-                  <time>{new Date(event.checked_at).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</time>
+      {expanded && (
+        <div className="fcx-timeline-content">
+          {displayEvents.length === 0 ? (
+            <p className="fcx-empty">{c.noTimeline}</p>
+          ) : (
+            <div className="fcx-event-list">
+              {displayEvents.map(({ event, definingReason }, index) => (
+                <div className="fcx-event" key={event.id}>
+                  <div className="fcx-event-line"><span /></div>
+                  <div className="fcx-event-body">
+                    <div className="fcx-event-top">
+                      <SignalPill signal={event.signal} />
+                      <time>{new Date(event.checked_at).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</time>
+                    </div>
+                    <strong>{definingReason}</strong>
+                    {index === 0 && events.length > 1 && <small>{c.latestPoint}</small>}
+                  </div>
                 </div>
-                <strong>{event.window_label || event.reason || "Assessment updated"}</strong>
-                {index === 0 && events.length > 1 && <small>Latest monitoring point</small>}
-              </div>
+              ))}
             </div>
-          ))}
+          )}
         </div>
       )}
     </section>

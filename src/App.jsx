@@ -272,6 +272,7 @@ const [form, setForm] = useState({
   const [selectedMessageAudience, setSelectedMessageAudience] = useState("client");
   const [messageDraft, setMessageDraft] = useState("");
   const [showWeatherDetails, setShowWeatherDetails] = useState(false);
+  const [showProjectDetails, setShowProjectDetails] = useState(false);
   const [resultJobContext, setResultJobContext] = useState(null);
   const [installPromptEvent, setInstallPromptEvent] = useState(null);
 const [showInstallHelp, setShowInstallHelp] = useState(false);
@@ -294,6 +295,12 @@ const adoption = useAdoptionExperience({
   jobs: savedJobs,
   pushAlertsEnabled,
 });
+
+useEffect(() => {
+  if (screen === "result") {
+    setShowProjectDetails(false);
+  }
+}, [screen, result?.checkedAt, resultJobContext?.id]);
 
 useEffect(() => {
   const entryContext = getAnalyticsEntryContext();
@@ -5154,7 +5161,7 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
   </button>
 
   <button onClick={goHome} style={primaryButtonStyle}>
-    {t("dashboard")}
+    {t("backToDashboard")}
   </button>
 </div>
 ) : (
@@ -5179,7 +5186,9 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
       )}
 
               <div style={resultSummaryCardStyle}>
-                <p style={resultSummaryEyebrowStyle}>{translateCallTypeDisplay(result.callTypeDisplay, language)}</p>
+                <p style={resultSummaryEyebrowStyle}>
+                  {t("fieldcallRecommendation")} · {translateCallTypeDisplay(result.callTypeDisplay, language)}
+                </p>
 
                 <div style={resultSummaryTopRowStyle}>
                   <div>
@@ -5192,10 +5201,10 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
 </p>
                   </div>
 
-                  <div style={resultScoreBadgeStyle}>
-  <strong style={resultScoreRiskLabelStyle}>{getAssessmentRiskLevelLabel(result, language)}</strong>
-  <span style={resultScorePointStyle}>{result.score} pts</span>
-</div>
+                  <div style={getResultScoreBadgeStyle(result.shortSignal)}>
+                    <span style={resultScoreNumberStyle}>{result.score}</span>
+                    <strong style={resultScoreRiskLabelStyle}>{getAssessmentRiskLevelLabel(result, language)}</strong>
+                  </div>
                 </div>
 
                 <div style={resultSummaryDividerStyle} />
@@ -5230,10 +5239,6 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
       }
     />
 
-    <SignalTimeline
-      language={language}
-      events={currentJobExperience.signalEvents}
-    />
   </>
 )}
 
@@ -5291,13 +5296,35 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
 )}
 
               <div style={whyCardStyle}>
-                <p style={whyTitleStyle}>{t("keyDecisionFactors")}</p>
+                <p style={whyTitleStyle}>{t("whyRecommendation")}</p>
                 {getShortWhyPoints(result, form, language).map((point, index) => (
                   <p key={index} style={whyPointStyle}>
                     • {point}
                   </p>
                 ))}
+
+                {result?.categoryPoints && (
+                  <div style={decisionScoreGridStyle}>
+                    {[
+                      [t("production"), result.categoryPoints.production],
+                      [t("quality"), result.categoryPoints.quality],
+                      [t("safety"), result.categoryPoints.safety],
+                    ].map(([label, value]) => (
+                      <div key={label} style={decisionScoreItemStyle}>
+                        <span style={decisionScoreLabelStyle}>{label}</span>
+                        <strong style={decisionScoreValueStyle}>{Number(value || 0)}</strong>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
+
+              {!guestMode && currentResultJobId && (
+                <SignalTimeline
+                  language={language}
+                  events={currentJobExperience.signalEvents}
+                />
+              )}
 
               <div style={weatherDetailsCardStyle}>
                 <button
@@ -5400,15 +5427,27 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
               </div>
 
 <div style={projectDetailsCardStyle}>
-  <p style={projectDetailsTitleStyle}>{t("projectDetails")}</p>
+  <button
+    type="button"
+    onClick={() => setShowProjectDetails(!showProjectDetails)}
+    style={projectDetailsToggleStyle}
+    aria-expanded={showProjectDetails}
+  >
+    <span>{t("projectDetails")}</span>
+    <span>{showProjectDetails ? "−" : "+"}</span>
+  </button>
 
-<p style={projectDetailsPrimaryStyle}>
-  {form.projectName || t("notEntered")} · {form.city}, {form.state}
-</p>
+  {showProjectDetails && (
+    <div style={projectDetailsContentStyle}>
+      <p style={projectDetailsPrimaryStyle}>
+        {form.projectName || t("notEntered")} · {form.city}, {form.state}
+      </p>
 
-  <p style={projectDetailsSecondaryStyle}>
-    {formatDateLabel(form.workDate, language)} · {getLocalizedOptionLabel(form.workType, language)}
-  </p>
+      <p style={projectDetailsSecondaryStyle}>
+        {formatDateLabel(form.workDate, language)} · {getLocalizedOptionLabel(form.workType, language)}
+      </p>
+    </div>
+  )}
 </div>
 
 {currentResultJobHasFinalResult && currentResultJob && (
@@ -5444,25 +5483,6 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
   </div>
 )}
 
-{currentResultJob && (
-  <div style={projectActionsCardStyle}>
-    <p style={projectDetailsTitleStyle}>{t("projectActions")}</p>
-
-    <div style={projectActionGridStyle}>
-      <button
-        onClick={() => duplicateJobToNewDate(currentResultJob)}
-        style={dateJobButtonStyle}
-      >
-        {t("copyToNewDate")}
-      </button>
-
-      <button onClick={deleteResultJob} style={deleteJobButtonStyle}>
-        {t("delete")}
-      </button>
-    </div>
-  </div>
-)}
-
 {!guestMode &&
   currentResultJob &&
   hasWorkDatePassed(currentResultJob) && (
@@ -5489,12 +5509,31 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
   </button>
 )}
 
+{currentResultJob && (
+  <div style={projectActionsCardStyle}>
+    <p style={projectDetailsTitleStyle}>{t("projectActions")}</p>
+
+    <div style={projectActionGridStyle}>
+      <button
+        onClick={() => duplicateJobToNewDate(currentResultJob)}
+        style={copyToNewDateButtonStyle}
+      >
+        {t("copyToNewDate")}
+      </button>
+
+      <button onClick={deleteResultJob} style={quietDeleteJobButtonStyle}>
+        {t("delete")}
+      </button>
+    </div>
+  </div>
+)}
+
               <button onClick={goHome} style={guestMode ? secondaryButtonStyle : primaryButtonStyle}>
                 {guestMode
                   ? language === "es"
                     ? "Volver a FieldCall"
                     : "Return to FieldCall"
-                  : t("dashboard")}
+                  : t("backToDashboard")}
               </button>
 
             </div>
@@ -5852,6 +5891,7 @@ createCompanyHelper: "Create your company in about 60 seconds. No credit card re
     goodCallText: "Good Call",
     badCallText: "Bad Call",
     checked: "Checked",
+    fieldcallRecommendation: "FieldCall Recommendation",
     bestWorkableWindow: "Best Workable Window",
     mainReason: "Primary Consideration",
     communication: "Communication",
@@ -5866,7 +5906,10 @@ createCompanyHelper: "Create your company in about 60 seconds. No credit card re
     crew: "Crew",
     vendor: "Vendor",
     internal: "Internal",
-    keyDecisionFactors: "KEY DECISION FACTORS",
+    whyRecommendation: "Why FieldCall reached this recommendation",
+    production: "Production",
+    quality: "Quality",
+    safety: "Safety",
     assessmentDetails: "Assessment Details",
     finalCallTimeDetail: "Final Call Time",
     dayBeforeWork: "the day before work",
@@ -5888,6 +5931,7 @@ createCompanyHelper: "Create your company in about 60 seconds. No credit card re
     callFeedback: "Call Feedback",
     notEntered: "Not entered",
     dashboard: "Dashboard",
+    backToDashboard: "← Dashboard",
     chooseDate: "Choose date",
     noDate: "No date",
     today: "Today",
@@ -6166,6 +6210,7 @@ createCompanyHelper: "Cree su empresa en aproximadamente 60 segundos. No se requ
     goodCallText: "Buena decisión",
     badCallText: "Mala decisión",
     checked: "Revisado",
+    fieldcallRecommendation: "Recomendación de FieldCall",
     bestWorkableWindow: "Mejor ventana de trabajo",
     mainReason: "Consideración principal",
     communication: "Comunicación",
@@ -6180,7 +6225,10 @@ createCompanyHelper: "Cree su empresa en aproximadamente 60 segundos. No se requ
     crew: "Cuadrilla",
     vendor: "Proveedor",
     internal: "Interno",
-    keyDecisionFactors: "FACTORES CLAVE DE DECISIÓN",
+    whyRecommendation: "Por qué FieldCall llegó a esta recomendación",
+    production: "Producción",
+    quality: "Calidad",
+    safety: "Seguridad",
     assessmentDetails: "Detalles de la evaluación",
     finalCallTimeDetail: "Hora de decisión final",
     dayBeforeWork: "el día anterior al trabajo",
@@ -6202,6 +6250,7 @@ createCompanyHelper: "Cree su empresa en aproximadamente 60 segundos. No se requ
     callFeedback: "Comentarios de la decisión",
     notEntered: "No ingresado",
     dashboard: "Panel",
+    backToDashboard: "← Panel",
     chooseDate: "Elegir fecha",
     noDate: "Sin fecha",
     today: "Hoy",
@@ -8997,32 +9046,106 @@ function getBackendSourcesChecked(openMeteoWeather, nwsWeather) {
   if (openMeteoWeather?.hourly?.time) sources.push("Open-Meteo");
   return sources.length ? sources.join(", ") : "No approved sources available";
 }
+function normalizeWhyPoint(point) {
+  const value = String(point || "").trim().replace(/\s+/g, " ");
+  if (!value) return "";
+  return /[.!?]$/.test(value) ? value : `${value}.`;
+}
+
+function isGenericWhyPoint(point) {
+  const value = String(point || "").toLowerCase();
+  return (
+    value.includes("assessment is preliminary") ||
+    value.includes("inside the selected final call window") ||
+    value.startsWith("production score:") ||
+    value.startsWith("workable window:") ||
+    value.startsWith("rain during work window:") ||
+    value.includes("normal monitoring still required") ||
+    value.includes("final call should be based on updated weather data")
+  );
+}
+
+function formatWhyPoint(point, language = "en") {
+  const value = String(point || "").trim();
+  const normalized = value.toLowerCase();
+  const spanish = language === "es";
+
+  if (normalized.includes("limited workable production window")) {
+    return spanish
+      ? "Solo hay una ventana de trabajo continua limitada."
+      : "Only a limited uninterrupted work window is available.";
+  }
+  if (normalized.includes("high peak rain chance during core hours")) {
+    return spanish
+      ? "El mayor riesgo de lluvia coincide con las horas principales de trabajo."
+      : "Peak rain risk overlaps the core work hours.";
+  }
+  if (normalized.includes("measurable rain during production window")) {
+    return spanish
+      ? "Se pronostica lluvia medible durante la ventana de trabajo planificada."
+      : "Measurable rain is forecast during the planned work window.";
+  }
+  if (normalized.includes("subgrade currently exposed")) {
+    return spanish
+      ? "La subrasante expuesta aumenta la sensibilidad a la humedad."
+      : "Exposed subgrade increases moisture sensitivity.";
+  }
+  if (normalized.includes("air temperature below preferred")) {
+    return spanish
+      ? "La temperatura está por debajo del nivel preferido para este trabajo."
+      : "Temperature is below the preferred baseline for this work.";
+  }
+  if (normalized.includes("lightning") || normalized.includes("thunderstorm")) {
+    return spanish
+      ? "Existe riesgo de rayos o tormentas durante el período evaluado."
+      : "Lightning or thunderstorm risk is present during the assessed period.";
+  }
+  if (normalized.includes("0.20") && normalized.includes("rain")) {
+    return spanish
+      ? "Se pronostica lluvia significativa demasiado cerca del inicio planificado."
+      : "Significant rain is forecast too close to the planned start.";
+  }
+
+  return normalizeWhyPoint(value);
+}
+
 function getShortWhyPoints(result, form, language = "en") {
-  const backendPoints = Array.isArray(result?.whyPoints)
-    ? result.whyPoints
-        .map((point) => String(point || "").trim())
-        .filter(Boolean)
-    : [];
+  const candidates = [];
+  const addPoint = (point) => {
+    if (!point || isGenericWhyPoint(point)) return;
+    const formatted = formatWhyPoint(point, language);
+    if (!formatted) return;
+    const key = formatted
+      .toLowerCase()
+      .replace(/[^a-z0-9áéíóúüñ]+/g, " ")
+      .trim();
+    if (!candidates.some((item) => item.key === key)) {
+      candidates.push({ key, text: formatted });
+    }
+  };
 
-  if (backendPoints.length > 0) {
-    return backendPoints;
+  (Array.isArray(result?.riskFactors) ? result.riskFactors : []).forEach(addPoint);
+  addPoint(result?.workWindowReason);
+  addPoint(result?.reason);
+  (Array.isArray(result?.whyPoints) ? result.whyPoints : []).forEach(addPoint);
+
+  if (result?.hasReliableWindow === false && candidates.length < 3) {
+    addPoint(
+      language === "es"
+        ? "Ninguna ventana continua cumplió los requisitos de trabajo de la empresa."
+        : "No uninterrupted window met the company work requirements."
+    );
   }
 
-  const backendRiskFactors = Array.isArray(result?.riskFactors)
-    ? result.riskFactors
-        .map((factor) => String(factor || "").trim())
-        .filter(Boolean)
-    : [];
-
-  if (backendRiskFactors.length > 0) {
-    return backendRiskFactors;
+  if (candidates.length === 0) {
+    return [
+      language === "es"
+        ? "Los factores de decisión no están disponibles para esta evaluación guardada. Ejecute una nueva revisión."
+        : "Decision factors are unavailable for this saved assessment. Run a new check.",
+    ];
   }
 
-  return [
-    language === "es"
-      ? "Los factores de decisión no están disponibles para esta evaluación guardada. Ejecute una nueva revisión."
-      : "Decision factors are unavailable for this saved assessment. Run a new check.",
-  ];
+  return candidates.slice(0, 3).map((item) => item.text);
 }
 
 // =====================================================
@@ -11285,6 +11408,28 @@ const dateJobButtonStyle = {
   cursor: "pointer",
 };
 
+const copyToNewDateButtonStyle = {
+  border: "1px solid #aebdca",
+  background: "#ffffff",
+  color: "#071528",
+  borderRadius: "12px",
+  padding: "9px 4px",
+  fontSize: "11px",
+  fontWeight: 900,
+  cursor: "pointer",
+};
+
+const quietDeleteJobButtonStyle = {
+  border: "1px solid #e2e8f0",
+  background: "#ffffff",
+  color: "#7b8794",
+  borderRadius: "12px",
+  padding: "9px 4px",
+  fontSize: "11px",
+  fontWeight: 800,
+  cursor: "pointer",
+};
+
 const dateEditBoxStyle = {
   marginTop: "8px",
   background: "#f8fafc",
@@ -12164,7 +12309,7 @@ const resultCardStyle = {
 };
 
 const resultSummaryCardStyle = {
-  background: "#f8fafc",
+  background: "#ffffff",
   borderRadius: "22px",
   padding: "18px",
   border: "1px solid rgba(226, 232, 240, 0.95)",
@@ -12211,32 +12356,42 @@ const resultCheckedAtStyle = {
   lineHeight: "13px",
 };
 
-const resultScoreBadgeStyle = {
-  minWidth: "86px",
-  minHeight: "86px",
-  borderRadius: "999px",
-  background: "#071528",
-  color: "white",
-  display: "grid",
-  placeItems: "center",
-  alignContent: "center",
-  boxShadow: "0 12px 24px rgba(7, 21, 40, 0.24)",
-  textAlign: "center",
+function getResultScoreBadgeStyle(signal) {
+  const normalized = String(signal || "").toUpperCase();
+  const isGo = normalized === "GO" || normalized === "FAVORABLE";
+  const isWatch = normalized === "WATCH";
+
+  return {
+    minWidth: "86px",
+    minHeight: "86px",
+    borderRadius: "999px",
+    background: isGo ? "#166534" : isWatch ? "#b77900" : "#b42318",
+    color: "white",
+    display: "grid",
+    placeItems: "center",
+    alignContent: "center",
+    boxShadow: isGo
+      ? "0 12px 24px rgba(22, 101, 52, 0.22)"
+      : isWatch
+      ? "0 12px 24px rgba(183, 121, 0, 0.22)"
+      : "0 12px 24px rgba(180, 35, 24, 0.22)",
+    textAlign: "center",
+  };
+}
+
+const resultScoreNumberStyle = {
+  fontSize: "27px",
+  lineHeight: "28px",
+  fontWeight: 950,
+  letterSpacing: "-0.05em",
 };
 
 const resultScoreRiskLabelStyle = {
-  fontSize: "12px",
-  lineHeight: "13px",
-  fontWeight: 900,
-  letterSpacing: "-0.04em",
-};
-
-const resultScorePointStyle = {
   marginTop: "2px",
-  fontSize: "11px",
-  lineHeight: "13px",
-  fontWeight: 700,
-  opacity: 0.88,
+  fontSize: "10px",
+  lineHeight: "12px",
+  fontWeight: 900,
+  letterSpacing: "-0.02em",
 };
 
 const resultSummaryDividerStyle = {
@@ -12410,7 +12565,7 @@ const weatherDetailsCardStyle = {
 
 const weatherDetailsToggleStyle = {
   width: "100%",
-  padding: "12px",
+  padding: "10px 11px",
   border: "none",
   background: "#ffffff",
   color: "#071528",
@@ -12424,8 +12579,8 @@ const weatherDetailsToggleStyle = {
 
 const weatherDetailsContentStyle = {
   borderTop: "1px solid #e2e8f0",
-  padding: "10px 12px",
-  background: "#f8fafc",
+  padding: "9px 11px",
+  background: "#ffffff",
 };
 
 const projectDetailsCardStyle = {
@@ -12433,14 +12588,40 @@ const projectDetailsCardStyle = {
   background: "#ffffff",
   border: "1px solid #e2e8f0",
   borderRadius: "14px",
+  overflow: "hidden",
+};
+
+const projectDetailsToggleStyle = {
+  width: "100%",
+  padding: "10px 11px",
+  border: "none",
+  background: "#ffffff",
+  color: "#071528",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  fontSize: "12px",
+  fontWeight: 900,
+  textTransform: "uppercase",
+  letterSpacing: "0.05em",
+  cursor: "pointer",
+};
+
+const projectDetailsContentStyle = {
+  borderTop: "1px solid #e2e8f0",
   padding: "9px 11px",
+  background: "#ffffff",
 };
 const projectActionsCardStyle = {
-  ...projectDetailsCardStyle,
+  marginTop: "9px",
+  background: "#ffffff",
+  border: "1px solid #e2e8f0",
+  borderRadius: "14px",
+  padding: "9px 11px",
 };
 
 const callFeedbackCardStyle = {
-  ...projectDetailsCardStyle,
+  ...projectActionsCardStyle,
 };
 
 const projectActionGridStyle = {
@@ -12511,15 +12692,15 @@ const actionTextStyle = {
 
 const whyCardStyle = {
   marginTop: "9px",
-  background: "#fffbeb",
-  border: "1px solid #fde68a",
+  background: "#ffffff",
+  border: "1px solid #e2e8f0",
   borderRadius: "15px",
-  padding: "10px",
+  padding: "9px 10px",
 };
 
 const whyTitleStyle = {
-  margin: "0 0 5px",
-  color: "#713f12",
+  margin: "0 0 6px",
+  color: "#9a6b00",
   fontWeight: 900,
   fontSize: "11px",
   textTransform: "uppercase",
@@ -12528,10 +12709,42 @@ const whyTitleStyle = {
 
 const whyPointStyle = {
   margin: "4px 0",
-  color: "#713f12",
+  color: "#25364a",
   fontSize: "12px",
   lineHeight: "16px",
   fontWeight: 700,
+};
+
+const decisionScoreGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+  gap: "7px",
+  marginTop: "10px",
+  paddingTop: "9px",
+  borderTop: "1px solid #e8edf2",
+};
+
+const decisionScoreItemStyle = {
+  minWidth: 0,
+  textAlign: "center",
+};
+
+const decisionScoreLabelStyle = {
+  display: "block",
+  color: "#64748b",
+  fontSize: "9px",
+  fontWeight: 900,
+  textTransform: "uppercase",
+  letterSpacing: "0.05em",
+};
+
+const decisionScoreValueStyle = {
+  display: "block",
+  marginTop: "2px",
+  color: "#071528",
+  fontSize: "20px",
+  lineHeight: "22px",
+  fontWeight: 950,
 };
 
 const summaryCompactStyle = {
@@ -12582,18 +12795,18 @@ const resultLineStyle = {
 };
 
 const copyActionCardStyle = {
-  marginTop: "10px",
+  marginTop: "9px",
   background: "#ffffff",
   border: "1px solid #e2e8f0",
   borderRadius: "16px",
-  padding: "10px",
+  padding: "9px 10px",
 };
 
 const copyActionTitleStyle = {
-  margin: "0 0 8px",
+  margin: "0 0 7px",
   fontWeight: 900,
   fontSize: "12px",
-  color: "#071528",
+  color: "#9a6b00",
   textTransform: "uppercase",
   letterSpacing: "0.05em",
 };
@@ -12626,11 +12839,11 @@ const copyGridStyle = {
 const copyButtonStyle = {
   width: "100%",
   minWidth: 0,
-  padding: "10px 4px",
-  borderRadius: "13px",
-  border: "1px solid #fde68a",
-  background: "#fffbeb",
-  color: "#713f12",
+  padding: "8px 4px",
+  borderRadius: "12px",
+  border: "1px solid #d6b44c",
+  background: "#ffffff",
+  color: "#25364a",
   fontSize: "11.5px",
   fontWeight: 900,
   cursor: "pointer",
@@ -12657,9 +12870,9 @@ const messageAudienceTabStyle = {
 
 const messageAudienceTabActiveStyle = {
   ...messageAudienceTabStyle,
-  borderColor: "#f5c542",
-  background: "#fffbeb",
-  color: "#713f12",
+  borderColor: "#d6b44c",
+  background: "#ffffff",
+  color: "#071528",
 };
 
 const messagePreviewLabelStyle = {

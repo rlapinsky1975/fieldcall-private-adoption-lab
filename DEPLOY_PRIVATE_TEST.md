@@ -51,8 +51,8 @@ The current service worker and VAPID public key are retained. Push subscriptions
 3. Review and confirm the company decision posture.
 4. Enable final-call alerts for the new origin.
 5. Create a real saved job with a Shadow Mode decision.
-6. Confirm the result shows `My Final Call` and monitoring history.
-7. Recheck the job and confirm a second timeline event appears.
+6. Confirm the result shows `Your Decision` and a collapsed Monitoring History header with its monitoring-point count.
+7. Recheck the job, expand Monitoring History, and confirm the newest monitoring point appears first with one defining reason.
 8. After the work window passes, submit the outcome.
 
 If the normal assessment app loads but the private cards show a missing-table error, the frontend deployment is working and the SQL migration still needs to be applied.

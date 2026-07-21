@@ -63,7 +63,7 @@ The result screen shows the latest five points in chronological context.
 On every saved result, FieldCall separates two records:
 
 - **FieldCall assessment** — the structured framework output
-- **My Final Call** — the responsible contractor's decision
+- **Your Decision** — the responsible contractor's decision
 
 The contractor chooses `GO`, `DELAY`, or `NO GO` and can add local context such as site moisture, drainage, haul distance, plant availability, crew capacity, or client restrictions.
 

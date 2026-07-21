@@ -8,7 +8,7 @@ The public beta does not need to be replaced to test this version.
 
 - Three-step activation finish line
 - Shadow Mode: contractor records a read before seeing FieldCall
-- Explicit `My Final Call`: `GO`, `DELAY`, or `NO GO`
+- Explicit `Your Decision`: `GO`, `DELAY`, or `NO GO`
 - Optional local context attached to the contractor decision
 - Automatic monitoring timeline for every change to `jobs.last_result`
 - Outcome capture after the work window has passed
