@@ -16,12 +16,11 @@ const COPY = {
     confirm: "Confirm current standard",
     enable: "Enable alerts",
     monitoring: "FieldCall is monitoring your first job.",
-    recordTitle: "Your FieldCall Record",
-    recordHelp: "Proof from your own operation—not a generic accuracy claim.",
+    recordHelp: "Built from your own operation. Not a generic accuracy claim.",
     monitored: "Jobs monitored",
-    changed: "Calls that changed",
-    calls: "Your calls saved",
-    outcomes: "Outcomes captured",
+    changed: "Recommendation changes",
+    calls: "Final decisions",
+    outcomes: "Verified outcomes",
     shadowTitle: "Run beside your judgment",
     shadowHelp: "Make your own call first. FieldCall will compare—not replace it.",
     yourRead: "Before you see FieldCall, what is your current read?",
@@ -68,12 +67,11 @@ const COPY = {
     confirm: "Confirmar estándar actual",
     enable: "Activar alertas",
     monitoring: "FieldCall está monitoreando su primer trabajo.",
-    recordTitle: "Su historial de FieldCall",
-    recordHelp: "Prueba de su propia operación, no una promesa genérica de precisión.",
+    recordHelp: "Creado con su propia operación. No es una promesa genérica de precisión.",
     monitored: "Trabajos monitoreados",
-    changed: "Decisiones que cambiaron",
-    calls: "Sus decisiones guardadas",
-    outcomes: "Resultados registrados",
+    changed: "Cambios de recomendación",
+    calls: "Decisiones finales",
+    outcomes: "Resultados verificados",
     shadowTitle: "Trabaje junto a su criterio",
     shadowHelp: "Decida primero. FieldCall compara; no reemplaza su criterio.",
     yourRead: "Antes de ver FieldCall, ¿cuál es su lectura actual?",
@@ -134,17 +132,7 @@ export function ActivationChecklist({
   onEnableAlerts,
 }) {
   const c = useCopy(language);
-  if (!activation || activation.complete) {
-    return (
-      <div className="fcx-activation-complete">
-        <span>✓</span>
-        <div>
-          <strong>{c.monitoring}</strong>
-          <p>{c.setupHelp}</p>
-        </div>
-      </div>
-    );
-  }
+  if (!activation || activation.complete) return null;
 
   return (
     <section className="fcx-card fcx-activation">
@@ -189,7 +177,6 @@ export function FieldCallRecord({ language = "en", record }) {
       <div className="fcx-card-heading compact">
         <div>
           <span className="fcx-eyebrow">FIELD PROOF</span>
-          <h3>{c.recordTitle}</h3>
           <p>{c.recordHelp}</p>
         </div>
       </div>

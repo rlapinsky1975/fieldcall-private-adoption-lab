@@ -4367,7 +4367,9 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
 </div>
             </div>
 
-            <FieldCallRecord language={language} record={adoption.record} />
+            {adoption.journey?.show_field_proof_on_dashboard !== false && (
+              <FieldCallRecord language={language} record={adoption.record} />
+            )}
 
 <div style={appActionsCardStyle}>
   <div style={appActionsWeatherStyle}>
@@ -4405,16 +4407,6 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
       <span style={dashboardSettingsChevronStyle}>›</span>
     </button>
 
-    <button
-      onClick={() => setScreen("trustCenter")}
-      style={dashboardSettingsButtonStyle}
-    >
-      <div style={dashboardSettingsTextStyle}>
-        <span>{language === "es" ? "Cómo funciona FieldCall" : "How FieldCall works"}</span>
-        <small>{language === "es" ? "Metodología, límites y criterio" : "Methodology, limits, and judgment"}</small>
-      </div>
-      <span style={dashboardSettingsChevronStyle}>›</span>
-    </button>
   </div>
 
   <div style={appActionsButtonRowStyle}>
@@ -4426,6 +4418,14 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
       {t("addToHomeScreen")}
     </button>
   </div>
+
+  <button
+    type="button"
+    onClick={() => setScreen("trustCenter")}
+    style={subtleMethodologyLinkStyle}
+  >
+    {t("howRecommendationsWork")} <span>›</span>
+  </button>
 
   {nonRoutinePushAlertMessage && (
     <div style={pushAlertMessageStyle}>
@@ -4490,6 +4490,27 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
                 {nonRoutinePushAlertMessage && (
                   <div style={settingsMessageStyle}>{nonRoutinePushAlertMessage}</div>
                 )}
+              </div>
+
+              <div style={settingsPanelStyle}>
+                <p style={eyebrowStyle}>{t("dashboardPreferences")}</p>
+                <div style={settingsCompactRowStyle}>
+                  <div style={settingsCompactTextStyle}>
+                    <strong style={settingsCompactTitleStyle}>{t("showFieldProofDashboard")}</strong>
+                    <p style={settingsCompactHelpStyle}>{t("showFieldProofDashboardHelp")}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => adoption.setShowFieldProofOnDashboard(
+                      adoption.journey?.show_field_proof_on_dashboard === false
+                    )}
+                    style={settingsCompactToggleStyle(
+                      adoption.journey?.show_field_proof_on_dashboard !== false
+                    )}
+                  >
+                    {adoption.journey?.show_field_proof_on_dashboard !== false ? t("on") : t("off")}
+                  </button>
+                </div>
               </div>
 
               <div style={settingsPanelStyle}>
@@ -5637,8 +5658,12 @@ createCompanyHelper: "Create your company in about 60 seconds. No credit card re
     callsMade: "History",
     callHistoryLimitHelp: "Showing your 10 most recent calls.",
     noLockedCalls: "No call history yet.",
-    weatherDataConnected: "Weather Data Connected",
-    weatherDataConnectedHelp: "NWS and Open-Meteo active.",
+    weatherDataConnected: "Monitoring Active",
+    weatherDataConnectedHelp: "Weather sources connected and monitoring current.",
+    howRecommendationsWork: "How recommendations work",
+    dashboardPreferences: "Dashboard",
+    showFieldProofDashboard: "Show Field Proof on dashboard",
+    showFieldProofDashboardHelp: "Hide the summary without stopping tracking or deleting history.",
     jobsUpdated: "Jobs updated",
     updated: "Updated",
     shareFieldCall: "Share FieldCall",
@@ -5946,8 +5971,12 @@ createCompanyHelper: "Cree su empresa en aproximadamente 60 segundos. No se requ
     callsMade: "Historial",
     callHistoryLimitHelp: "Se muestran sus 10 decisiones más recientes.",
     noLockedCalls: "Todavía no hay historial de decisiones.",
-    weatherDataConnected: "Datos del clima conectados",
-    weatherDataConnectedHelp: "NWS y Open-Meteo activos.",
+    weatherDataConnected: "Monitoreo activo",
+    weatherDataConnectedHelp: "Fuentes conectadas y monitoreo actualizado.",
+    howRecommendationsWork: "Cómo funcionan las recomendaciones",
+    dashboardPreferences: "Panel",
+    showFieldProofDashboard: "Mostrar Field Proof en el panel",
+    showFieldProofDashboardHelp: "Oculte el resumen sin detener el seguimiento ni borrar el historial.",
     jobsUpdated: "Trabajos actualizados",
     updated: "Actualizado",
     shareFieldCall: "Compartir FieldCall",
@@ -10421,6 +10450,19 @@ const appActionButtonStyle = {
   color: "#475569",
   fontSize: "10px",
   fontWeight: 900,
+  cursor: "pointer",
+};
+
+const subtleMethodologyLinkStyle = {
+  width: "100%",
+  marginTop: "10px",
+  padding: "6px 4px 0",
+  border: 0,
+  background: "transparent",
+  color: "#718096",
+  fontSize: "12px",
+  fontWeight: 700,
+  textAlign: "center",
   cursor: "pointer",
 };
 
