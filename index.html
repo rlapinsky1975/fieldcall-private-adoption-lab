@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+
+    <title>FieldCall Private Test</title>
+
+    <meta
+      name="description"
+      content="FieldCall helps field teams make clearer weather decisions for crews, schedules, and job sites."
+    />
+
+    <meta name="theme-color" content="#071528" />
+
+    <!-- Android / PWA Manifest -->
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <!-- iPhone / iPad Home Screen Icon -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+
+    <!-- Browser Favicons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="icon" href="/favicon.ico" />
+
+    <!-- iPhone Web App Behavior -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="FC Private" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+
+
+    <!-- Capture the short-lived guest handoff before analytics initializes.
+         New landing traffic uses the URL fragment so job/address details are
+         not sent in the HTTP request. Query fallback keeps older links valid. -->
+    <script>
+      (function () {
+        try {
+          var url = new URL(window.location.href);
+          var hashParams = new URLSearchParams(url.hash.replace(/^#/, ''));
+          var payload = hashParams.get('payload') || url.searchParams.get('payload');
+
+          if (!payload) return;
+
+          window.__FIELDCALL_GUEST_PAYLOAD__ = payload;
+
+          try {
+            window.sessionStorage.setItem('fieldcall_guest_handoff_payload', payload);
+          } catch (_) {
+            // In-memory fallback above is enough for this page load.
+          }
+
+          url.searchParams.delete('payload');
+          url.hash = '';
+          window.history.replaceState({}, '', url.toString());
+        } catch (_) {
+          // The app will show its normal handoff error if the URL is malformed.
+        }
+      })();
+    </script>
+
+    <!-- Google Analytics: use the same GA4 stream as myfieldcall.com so the
+         landing page and app remain one measurable user journey. -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-JP28C1BN9L"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-JP28C1BN9L', {
+        cookie_domain: 'auto',
+        send_page_view: false
+      });
+    </script>
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

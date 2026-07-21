@@ -1,0 +1,8 @@
+node_modules
+dist
+.env
+.env.local
+.env.local.txt
+.env.*.local
+.vercel
+.DS_Store
