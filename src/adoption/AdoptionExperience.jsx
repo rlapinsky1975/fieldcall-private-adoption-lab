@@ -167,16 +167,8 @@ export function ActivationChecklist({
 }) {
   const c = useCopy(language);
   if (!activation || activation.complete) {
-    return (
-      <div className="fcx-activation-complete">
-        <span>✓</span>
-        <div>
-          <strong>{c.monitoring}</strong>
-          <p>{c.setupHelp}</p>
-        </div>
-      </div>
-    );
-  }
+  return null;
+}
 
   return (
     <section className="fcx-card fcx-activation">
