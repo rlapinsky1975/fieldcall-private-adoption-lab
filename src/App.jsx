@@ -11,7 +11,6 @@ import {
   ContractorDecisionPanel,
   FieldCallRecord,
   OutcomeCapture,
-  PrivateLabBanner,
   ShadowModeField,
   SignalTimeline,
   TrustCenter,
@@ -3456,7 +3455,7 @@ function isDashboardElevatedPreliminaryRisk(job) {
   );
 }
 
-const dashboardTodaysJobs = visibleActiveJobs
+const dashboardReviewJobs = visibleActiveJobs
   .filter(
     (job) =>
       isSameWorkDate(job.workDate, new Date()) ||
@@ -3478,12 +3477,12 @@ const dashboardTodaysJobs = visibleActiveJobs
     return preliminaryRiskDifference || sortFinalCallsFirst(a, b);
   });
 
-const dashboardTodayJobIds = new Set(
-  dashboardTodaysJobs.map((job) => job.id)
+const dashboardReviewJobIds = new Set(
+  dashboardReviewJobs.map((job) => job.id)
 );
 
 const dashboardPreliminaryJobs = visibleActiveJobs
-  .filter((job) => !dashboardTodayJobIds.has(job.id))
+  .filter((job) => !dashboardReviewJobIds.has(job.id))
   .sort(sortByWorkDateSoonestFirst);
 
 function renderJobCard(job, options = {}) {
@@ -3581,6 +3580,10 @@ const showFallbackActions =
       }}
     >
       <div style={jobCardContentStyle}>
+        <p style={jobWorkDateStyle}>
+          {formatDashboardWorkDateLabel(job.workDate, language)}
+        </p>
+
         {showActionRequired && (
           <div style={actionRequiredBadgeStyle}>
             <span>!</span>
@@ -3610,7 +3613,7 @@ const showFallbackActions =
             </div>
 
             <p style={jobMetaStyle}>
-              {job.city}, {job.state} · {formatDateLabel(job.workDate, language)}
+              {job.city}, {job.state}
               {job.lastResult?.workWindowTempRange && job.lastResult.workWindowTempRange !== "Unavailable"
                 ? ` · ${job.lastResult.workWindowTempRange}`
                 : ""}
@@ -4194,7 +4197,6 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
 
         {!guestMode && screen === "dashboard" && (
           <section style={scrollScreenStyle}>
-            <PrivateLabBanner language={language} />
             <div style={heroCardStyle}>
 <div style={heroBrandRowStyle}>
   <img
@@ -4253,8 +4255,6 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
               onEnableAlerts={handleToggleFinalCallAlerts}
             />
 
-            <FieldCallRecord language={language} record={adoption.record} />
-
             {adoption.message && (
               <div style={errorBoxStyle}>{adoption.message}</div>
             )}
@@ -4276,21 +4276,21 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
       <div style={sectionTitleWithIconStyle}>
         <span style={greenSectionIconStyle}>✓</span>
         <div>
-          <h3 style={queueSectionTitleStyle}>{t("todaysCalls")}</h3>
-          <p style={queueSectionHelpStyle}>{t("todaysCallsHelp")}</p>
+          <h3 style={queueSectionTitleStyle}>{t("callsToReview")}</h3>
+          <p style={queueSectionHelpStyle}>{t("callsToReviewHelp")}</p>
         </div>
       </div>
 
-      <span style={queueSectionCountStyle}>{dashboardTodaysJobs.length}</span>
+      <span style={queueSectionCountStyle}>{dashboardReviewJobs.length}</span>
     </div>
 
-    {dashboardTodaysJobs.length === 0 && (
+    {dashboardReviewJobs.length === 0 && (
       <div style={collapsedQueueStyle}>
-        <span>{t("noTodaysCalls")}</span>
+        <span>{t("noCallsToReview")}</span>
       </div>
     )}
 
-    {dashboardTodaysJobs.map((job) => {
+    {dashboardReviewJobs.map((job) => {
       const actionRequired = isDashboardActionRequired(job);
       const elevatedPreliminaryRisk =
         isDashboardElevatedPreliminaryRisk(job);
@@ -4367,12 +4367,16 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
 </div>
             </div>
 
+            {adoption.journey?.show_field_proof_on_dashboard !== false && (
+              <FieldCallRecord language={language} record={adoption.record} />
+            )}
+
 <div style={appActionsCardStyle}>
   <div style={appActionsWeatherStyle}>
     <span style={weatherConnectedIconStyle}>☁</span>
     <div>
       <strong>{t("weatherDataConnected")}</strong>
-      <p style={miniTextStyle}>{t("weatherDataConnectedHelp")}</p>
+      <p style={miniTextStyle}>{t("weatherDataConnectedHelp")} {weatherConnectedTime}</p>
     </div>
   </div>
 
@@ -4403,16 +4407,6 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
       <span style={dashboardSettingsChevronStyle}>›</span>
     </button>
 
-    <button
-      onClick={() => setScreen("trustCenter")}
-      style={dashboardSettingsButtonStyle}
-    >
-      <div style={dashboardSettingsTextStyle}>
-        <span>{language === "es" ? "Cómo funciona FieldCall" : "How FieldCall works"}</span>
-        <small>{language === "es" ? "Metodología, límites y criterio" : "Methodology, limits, and judgment"}</small>
-      </div>
-      <span style={dashboardSettingsChevronStyle}>›</span>
-    </button>
   </div>
 
   <div style={appActionsButtonRowStyle}>
@@ -4424,6 +4418,14 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
       {t("addToHomeScreen")}
     </button>
   </div>
+
+  <button
+    type="button"
+    onClick={() => setScreen("trustCenter")}
+    style={subtleMethodologyLinkStyle}
+  >
+    <span aria-hidden="true">ⓘ</span> {t("howRecommendationsWork")} <span>›</span>
+  </button>
 
   {nonRoutinePushAlertMessage && (
     <div style={pushAlertMessageStyle}>
@@ -4488,6 +4490,27 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
                 {nonRoutinePushAlertMessage && (
                   <div style={settingsMessageStyle}>{nonRoutinePushAlertMessage}</div>
                 )}
+              </div>
+
+              <div style={settingsPanelStyle}>
+                <p style={eyebrowStyle}>{t("dashboardPreferences")}</p>
+                <div style={settingsCompactRowStyle}>
+                  <div style={settingsCompactTextStyle}>
+                    <strong style={settingsCompactTitleStyle}>{t("showFieldProofDashboard")}</strong>
+                    <p style={settingsCompactHelpStyle}>{t("showFieldProofDashboardHelp")}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => adoption.setShowFieldProofOnDashboard(
+                      adoption.journey?.show_field_proof_on_dashboard === false
+                    )}
+                    style={settingsCompactToggleStyle(
+                      adoption.journey?.show_field_proof_on_dashboard !== false
+                    )}
+                  >
+                    {adoption.journey?.show_field_proof_on_dashboard !== false ? t("on") : t("off")}
+                  </button>
+                </div>
               </div>
 
               <div style={settingsPanelStyle}>
@@ -5623,14 +5646,14 @@ createCompanyHelper: "Create your company in about 60 seconds. No credit card re
     retry: "Retry",
     messages: "Messages",
     syncing: "Syncing...",
-    refresh: "Sync",
+    refresh: "Refresh",
     noSavedJobs: "No saved jobs yet.",
     finalCallsReady: "Final Calls Ready",
     finalCallsHelp: "Final calls for review.",
     noFinalCalls: "No final calls ready.",
-    todaysCalls: "Today's Calls",
-    todaysCallsHelp: "Final calls and elevated preliminary risks.",
-    noTodaysCalls: "No calls for today.",
+    callsToReview: "Calls to Review",
+    callsToReviewHelp: "Jobs requiring your attention.",
+    noCallsToReview: "No calls need review right now.",
     tomorrowsCalls: "Tomorrow's Calls",
     tomorrowsCallsHelp: "Calls that need communication before tomorrow’s work.",
     noTomorrowsCalls: "No calls for tomorrow.",
@@ -5642,8 +5665,12 @@ createCompanyHelper: "Create your company in about 60 seconds. No credit card re
     callsMade: "History",
     callHistoryLimitHelp: "Showing your 10 most recent calls.",
     noLockedCalls: "No call history yet.",
-    weatherDataConnected: "Weather Data Connected",
-    weatherDataConnectedHelp: "NWS and Open-Meteo active.",
+    weatherDataConnected: "Monitoring Active",
+    weatherDataConnectedHelp: "NWS • Open-Meteo • Updated",
+    howRecommendationsWork: "How recommendations work",
+    dashboardPreferences: "Dashboard",
+    showFieldProofDashboard: "Show Field Proof on dashboard",
+    showFieldProofDashboardHelp: "Hide the summary without stopping tracking or deleting history.",
     jobsUpdated: "Jobs updated",
     updated: "Updated",
     shareFieldCall: "Share FieldCall",
@@ -5933,14 +5960,14 @@ createCompanyHelper: "Cree su empresa en aproximadamente 60 segundos. No se requ
     retry: "Reintentar",
     messages: "Mensajes",
     syncing: "Sincronizando...",
-    refresh: "Sync",
+    refresh: "Actualizar",
     noSavedJobs: "Todavía no hay trabajos guardados.",
     finalCallsReady: "Decisiones finales listas",
     finalCallsHelp: "Decisiones finales para revisar.",
     noFinalCalls: "No hay decisiones finales listas.",
-    todaysCalls: "Decisiones de hoy",
-    todaysCallsHelp: "Decisiones finales y riesgos preliminares elevados.",
-    noTodaysCalls: "No hay decisiones para hoy.",
+    callsToReview: "Decisiones para revisar",
+    callsToReviewHelp: "Trabajos que requieren su atención.",
+    noCallsToReview: "No hay decisiones que revisar ahora.",
     tomorrowsCalls: "Decisiones de mañana",
     tomorrowsCallsHelp: "Decisiones que necesitan comunicación antes del trabajo de mañana.",
     noTomorrowsCalls: "No hay decisiones para mañana.",
@@ -5952,8 +5979,12 @@ createCompanyHelper: "Cree su empresa en aproximadamente 60 segundos. No se requ
     callsMade: "Historial",
     callHistoryLimitHelp: "Se muestran sus 10 decisiones más recientes.",
     noLockedCalls: "Todavía no hay historial de decisiones.",
-    weatherDataConnected: "Datos del clima conectados",
-    weatherDataConnectedHelp: "NWS y Open-Meteo activos.",
+    weatherDataConnected: "Monitoreo activo",
+    weatherDataConnectedHelp: "NWS • Open-Meteo • Actualizado",
+    howRecommendationsWork: "Cómo funcionan las recomendaciones",
+    dashboardPreferences: "Panel",
+    showFieldProofDashboard: "Mostrar Field Proof en el panel",
+    showFieldProofDashboardHelp: "Oculte el resumen sin detener el seguimiento ni borrar el historial.",
     jobsUpdated: "Trabajos actualizados",
     updated: "Actualizado",
     shareFieldCall: "Compartir FieldCall",
@@ -7099,6 +7130,32 @@ function formatFullDateLabel(dateString, language = "en") {
     day: "numeric",
     year: "numeric",
   });
+}
+
+function formatDashboardWorkDateLabel(dateString, language = "en") {
+  if (!dateString) return translateAppText(language, "noDate");
+
+  const today = new Date();
+  const tomorrow = new Date();
+  tomorrow.setDate(today.getDate() + 1);
+
+  const inputDate = new Date(`${dateString}T12:00:00`);
+  const locale = language === "es" ? "es-US" : "en-US";
+  const weekdayDate = inputDate.toLocaleDateString(locale, {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
+
+  if (inputDate.toDateString() === today.toDateString()) {
+    return `${translateAppText(language, "today")} · ${weekdayDate}`;
+  }
+
+  if (inputDate.toDateString() === tomorrow.toDateString()) {
+    return `${translateAppText(language, "tomorrow")} · ${weekdayDate}`;
+  }
+
+  return weekdayDate;
 }
 
 function formatDateLabel(dateString, language = "en") {
@@ -10401,13 +10458,13 @@ const premiumMiniCardStyle = {
 };
 
 const appActionsCardStyle = {
-  marginTop: "9px",
+  marginTop: "7px",
   background: "rgba(255,255,255,0.92)",
   borderRadius: "18px",
-  padding: "10px",
+  padding: "9px 10px 8px",
   border: "1px solid rgba(226, 232, 240, 0.90)",
   display: "grid",
-  gap: "9px",
+  gap: "7px",
   boxShadow: "0 8px 20px rgba(15, 23, 42, 0.05)",
 };
 
@@ -10423,7 +10480,7 @@ const appActionsWeatherStyle = {
   minWidth: 0,
   color: "#0f172a",
   fontSize: "12px",
-  padding: "2px 2px 9px",
+  padding: "1px 2px 7px",
   borderBottom: "1px solid #eef2f7",
 };
 
@@ -10448,13 +10505,26 @@ const appActionsButtonRowStyle = {
 
 const appActionButtonStyle = {
   width: "100%",
-  padding: "8px 6px",
+  padding: "7px 6px",
   borderRadius: "11px",
   border: "1px solid #e2e8f0",
   background: "#f8fafc",
   color: "#475569",
   fontSize: "10px",
   fontWeight: 900,
+  cursor: "pointer",
+};
+
+const subtleMethodologyLinkStyle = {
+  width: "100%",
+  marginTop: "6px",
+  padding: "5px 4px 1px",
+  border: 0,
+  background: "transparent",
+  color: "#718096",
+  fontSize: "12px",
+  fontWeight: 700,
+  textAlign: "center",
   cursor: "pointer",
 };
 
@@ -10657,13 +10727,13 @@ const emptyStateButtonStyle = {
 
 const jobListStyle = {
   display: "grid",
-  gap: "7px",
-  marginTop: "8px",
+  gap: "6px",
+  marginTop: "6px",
 };
 
 const queueSectionHeaderStyle = {
   marginTop: "3px",
-  padding: "8px 10px",
+  padding: "7px 10px",
   borderRadius: "14px",
   background: "#f8fafc",
   border: "1px solid #e2e8f0",
@@ -10758,8 +10828,8 @@ const drawerCountPillStyle = {
 
 const preliminaryDrawerButtonStyle = {
   width: "100%",
-  marginTop: "8px",
-  padding: "11px 12px",
+  marginTop: "6px",
+  padding: "9px 12px",
   borderRadius: "14px",
   border: "1px solid #e2e8f0",
   background: "#ffffff",
@@ -10781,10 +10851,20 @@ const preliminaryDrawerContentStyle = {
 const jobCardStyle = {
   border: "1px solid #e2e8f0",
   borderRadius: "14px",
-  padding: "9px 10px",
+  padding: "7px 10px",
   background: "#ffffff",
   boxShadow: "0 4px 12px rgba(15, 23, 42, 0.03)",
   overflow: "hidden",
+};
+
+const jobWorkDateStyle = {
+  margin: 0,
+  paddingBottom: "6px",
+  borderBottom: "1px solid rgba(148, 163, 184, 0.28)",
+  color: "#0f172a",
+  fontSize: "12px",
+  lineHeight: "15px",
+  fontWeight: 900,
 };
 
 const jobCardContentStyle = {
@@ -10795,7 +10875,7 @@ const jobCardContentStyle = {
 const jobCompactTopRowStyle = {
   display: "grid",
   gridTemplateColumns: "58px minmax(0, 1fr)",
-  gap: "10px",
+  gap: "8px",
   alignItems: "center",
   minWidth: 0,
 };
@@ -10943,8 +11023,8 @@ const latestResultLineStyle = {
 };
 
 const compactReasonRowStyle = {
-  marginTop: "8px",
-  paddingTop: "8px",
+  marginTop: "6px",
+  paddingTop: "6px",
   borderTop: "1px solid rgba(226, 232, 240, 0.9)",
   display: "grid",
   gridTemplateColumns: "34px 1fr",
@@ -10988,7 +11068,7 @@ const jobButtonGridStyle = {
 
 const compactJobButtonGridStyle = {
   display: "flex",
-  gap: "8px",
+  gap: "7px",
   marginTop: 0,
   minWidth: 0,
   width: "100%",
@@ -11056,8 +11136,8 @@ const viewJobButtonStyle = {
   background: "#ffffff",
   color: "#071528",
   borderRadius: "11px",
-  padding: "9px 8px",
-  minHeight: "36px",
+  padding: "8px 8px",
+  minHeight: "34px",
   fontSize: "12px",
   lineHeight: "14px",
   fontWeight: 900,
@@ -11074,8 +11154,8 @@ const runJobButtonStyle = {
   background: "#071528",
   color: "white",
   borderRadius: "11px",
-  padding: "9px 8px",
-  minHeight: "36px",
+  padding: "8px 8px",
+  minHeight: "34px",
   fontSize: "12px",
   lineHeight: "14px",
   fontWeight: 900,
@@ -11146,8 +11226,8 @@ const messagesJobButtonStyle = {
 };
 
 const jobsSyncFooterStyle = {
-  marginTop: "10px",
-  paddingTop: "10px",
+  marginTop: "8px",
+  paddingTop: "8px",
   borderTop: "1px solid #eef2f7",
   color: "#64748b",
   fontSize: "11px",
@@ -11953,8 +12033,8 @@ const checkboxHelpStyle = {
 const primaryButtonStyle = {
   width: "100%",
   marginTop: "10px",
-  padding: "13px",
-  borderRadius: "16px",
+  padding: "11px 13px",
+  borderRadius: "15px",
   border: "none",
   background: "#071528",
   color: "white",
