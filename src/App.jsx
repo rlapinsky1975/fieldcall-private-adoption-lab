@@ -11,7 +11,6 @@ import {
   ContractorDecisionPanel,
   FieldCallRecord,
   OutcomeCapture,
-  PrivateLabBanner,
   ShadowModeField,
   SignalTimeline,
   TrustCenter,
@@ -3456,7 +3455,7 @@ function isDashboardElevatedPreliminaryRisk(job) {
   );
 }
 
-const dashboardTodaysJobs = visibleActiveJobs
+const dashboardReviewJobs = visibleActiveJobs
   .filter(
     (job) =>
       isSameWorkDate(job.workDate, new Date()) ||
@@ -3478,12 +3477,12 @@ const dashboardTodaysJobs = visibleActiveJobs
     return preliminaryRiskDifference || sortFinalCallsFirst(a, b);
   });
 
-const dashboardTodayJobIds = new Set(
-  dashboardTodaysJobs.map((job) => job.id)
+const dashboardReviewJobIds = new Set(
+  dashboardReviewJobs.map((job) => job.id)
 );
 
 const dashboardPreliminaryJobs = visibleActiveJobs
-  .filter((job) => !dashboardTodayJobIds.has(job.id))
+  .filter((job) => !dashboardReviewJobIds.has(job.id))
   .sort(sortByWorkDateSoonestFirst);
 
 function renderJobCard(job, options = {}) {
@@ -3581,6 +3580,10 @@ const showFallbackActions =
       }}
     >
       <div style={jobCardContentStyle}>
+        <p style={jobWorkDateStyle}>
+          {formatDashboardWorkDateLabel(job.workDate, language)}
+        </p>
+
         {showActionRequired && (
           <div style={actionRequiredBadgeStyle}>
             <span>!</span>
@@ -3610,7 +3613,7 @@ const showFallbackActions =
             </div>
 
             <p style={jobMetaStyle}>
-              {job.city}, {job.state} · {formatDateLabel(job.workDate, language)}
+              {job.city}, {job.state}
               {job.lastResult?.workWindowTempRange && job.lastResult.workWindowTempRange !== "Unavailable"
                 ? ` · ${job.lastResult.workWindowTempRange}`
                 : ""}
@@ -4194,7 +4197,6 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
 
         {!guestMode && screen === "dashboard" && (
           <section style={scrollScreenStyle}>
-            <PrivateLabBanner language={language} />
             <div style={heroCardStyle}>
 <div style={heroBrandRowStyle}>
   <img
@@ -4253,8 +4255,6 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
               onEnableAlerts={handleToggleFinalCallAlerts}
             />
 
-            <FieldCallRecord language={language} record={adoption.record} />
-
             {adoption.message && (
               <div style={errorBoxStyle}>{adoption.message}</div>
             )}
@@ -4276,21 +4276,21 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
       <div style={sectionTitleWithIconStyle}>
         <span style={greenSectionIconStyle}>✓</span>
         <div>
-          <h3 style={queueSectionTitleStyle}>{t("todaysCalls")}</h3>
-          <p style={queueSectionHelpStyle}>{t("todaysCallsHelp")}</p>
+          <h3 style={queueSectionTitleStyle}>{t("callsToReview")}</h3>
+          <p style={queueSectionHelpStyle}>{t("callsToReviewHelp")}</p>
         </div>
       </div>
 
-      <span style={queueSectionCountStyle}>{dashboardTodaysJobs.length}</span>
+      <span style={queueSectionCountStyle}>{dashboardReviewJobs.length}</span>
     </div>
 
-    {dashboardTodaysJobs.length === 0 && (
+    {dashboardReviewJobs.length === 0 && (
       <div style={collapsedQueueStyle}>
-        <span>{t("noTodaysCalls")}</span>
+        <span>{t("noCallsToReview")}</span>
       </div>
     )}
 
-    {dashboardTodaysJobs.map((job) => {
+    {dashboardReviewJobs.map((job) => {
       const actionRequired = isDashboardActionRequired(job);
       const elevatedPreliminaryRisk =
         isDashboardElevatedPreliminaryRisk(job);
@@ -4366,6 +4366,8 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
   </button>
 </div>
             </div>
+
+            <FieldCallRecord language={language} record={adoption.record} />
 
 <div style={appActionsCardStyle}>
   <div style={appActionsWeatherStyle}>
@@ -5621,9 +5623,9 @@ createCompanyHelper: "Create your company in about 60 seconds. No credit card re
     finalCallsReady: "Final Calls Ready",
     finalCallsHelp: "Final calls for review.",
     noFinalCalls: "No final calls ready.",
-    todaysCalls: "Today's Calls",
-    todaysCallsHelp: "Final calls and elevated preliminary risks.",
-    noTodaysCalls: "No calls for today.",
+    callsToReview: "Calls to Review",
+    callsToReviewHelp: "Final calls and elevated preliminary risks that need attention.",
+    noCallsToReview: "No calls need review right now.",
     tomorrowsCalls: "Tomorrow's Calls",
     tomorrowsCallsHelp: "Calls that need communication before tomorrow’s work.",
     noTomorrowsCalls: "No calls for tomorrow.",
@@ -5930,9 +5932,9 @@ createCompanyHelper: "Cree su empresa en aproximadamente 60 segundos. No se requ
     finalCallsReady: "Decisiones finales listas",
     finalCallsHelp: "Decisiones finales para revisar.",
     noFinalCalls: "No hay decisiones finales listas.",
-    todaysCalls: "Decisiones de hoy",
-    todaysCallsHelp: "Decisiones finales y riesgos preliminares elevados.",
-    noTodaysCalls: "No hay decisiones para hoy.",
+    callsToReview: "Decisiones para revisar",
+    callsToReviewHelp: "Decisiones finales y riesgos preliminares elevados que requieren atención.",
+    noCallsToReview: "No hay decisiones que revisar ahora.",
     tomorrowsCalls: "Decisiones de mañana",
     tomorrowsCallsHelp: "Decisiones que necesitan comunicación antes del trabajo de mañana.",
     noTomorrowsCalls: "No hay decisiones para mañana.",
@@ -7090,6 +7092,32 @@ function formatFullDateLabel(dateString, language = "en") {
     day: "numeric",
     year: "numeric",
   });
+}
+
+function formatDashboardWorkDateLabel(dateString, language = "en") {
+  if (!dateString) return translateAppText(language, "noDate");
+
+  const today = new Date();
+  const tomorrow = new Date();
+  tomorrow.setDate(today.getDate() + 1);
+
+  const inputDate = new Date(`${dateString}T12:00:00`);
+  const locale = language === "es" ? "es-US" : "en-US";
+  const weekdayDate = inputDate.toLocaleDateString(locale, {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
+
+  if (inputDate.toDateString() === today.toDateString()) {
+    return `${translateAppText(language, "today")} · ${weekdayDate}`;
+  }
+
+  if (inputDate.toDateString() === tomorrow.toDateString()) {
+    return `${translateAppText(language, "tomorrow")} · ${weekdayDate}`;
+  }
+
+  return weekdayDate;
 }
 
 function formatDateLabel(dateString, language = "en") {
@@ -10723,6 +10751,16 @@ const jobCardStyle = {
   background: "#ffffff",
   boxShadow: "0 4px 12px rgba(15, 23, 42, 0.03)",
   overflow: "hidden",
+};
+
+const jobWorkDateStyle = {
+  margin: 0,
+  paddingBottom: "7px",
+  borderBottom: "1px solid rgba(148, 163, 184, 0.28)",
+  color: "#0f172a",
+  fontSize: "12px",
+  lineHeight: "15px",
+  fontWeight: 900,
 };
 
 const jobCardContentStyle = {

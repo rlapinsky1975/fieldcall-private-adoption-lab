@@ -3,8 +3,6 @@ import "./adoption.css";
 
 const COPY = {
   en: {
-    privateTest: "PRIVATE TEST",
-    privateTestHelp: "New trust and workflow features are isolated from the public beta.",
     setupTitle: "Finish setting up FieldCall",
     setupHelp: "Three practical steps put your first job under active monitoring.",
     realJob: "Save one real job",
@@ -57,8 +55,6 @@ const COPY = {
     outcomeSaved: "Outcome saved. This now counts in your FieldCall Record.",
   },
   es: {
-    privateTest: "PRUEBA PRIVADA",
-    privateTestHelp: "Las nuevas funciones de confianza y flujo están separadas de la beta pública.",
     setupTitle: "Termine de configurar FieldCall",
     setupHelp: "Tres pasos prácticos ponen su primer trabajo bajo monitoreo activo.",
     realJob: "Guarde un trabajo real",
@@ -114,16 +110,6 @@ const COPY = {
 
 function useCopy(language) {
   return COPY[language === "es" ? "es" : "en"];
-}
-
-export function PrivateLabBanner({ language = "en" }) {
-  const c = useCopy(language);
-  return (
-    <div className="fcx-lab-banner">
-      <span>{c.privateTest}</span>
-      <p>{c.privateTestHelp}</p>
-    </div>
-  );
 }
 
 function ChecklistRow({ done, title, help, children }) {
