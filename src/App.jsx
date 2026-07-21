@@ -5230,10 +5230,6 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
       }
     />
 
-    <SignalTimeline
-      language={language}
-      events={currentJobExperience.signalEvents}
-    />
   </>
 )}
 
@@ -5291,13 +5287,20 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
 )}
 
               <div style={whyCardStyle}>
-                <p style={whyTitleStyle}>{t("keyDecisionFactors")}</p>
+                <p style={whyTitleStyle}>{language === "es" ? "POR QUÉ FIELDCALL LLEGÓ A ESTA RECOMENDACIÓN" : "WHY FIELDCALL REACHED THIS RECOMMENDATION"}</p>
                 {getShortWhyPoints(result, form, language).map((point, index) => (
                   <p key={index} style={whyPointStyle}>
-                    • {point}
+                    <span style={whyDotStyle}>•</span>{point}
                   </p>
                 ))}
               </div>
+
+              {!guestMode && currentResultJobId && (
+                <SignalTimeline
+                  language={language}
+                  events={currentJobExperience.signalEvents}
+                />
+              )}
 
               <div style={weatherDetailsCardStyle}>
                 <button
@@ -10493,7 +10496,7 @@ const installHelpStyle = {
   gridColumn: "1 / -1",
   background: "#fffbeb",
   border: "1px solid #fde68a",
-  color: "#713f12",
+  color: "#a16f00",
   borderRadius: "14px",
   padding: "10px",
   fontSize: "12px",
@@ -12449,10 +12452,10 @@ const actionTextStyle = {
 
 const whyCardStyle = {
   marginTop: "9px",
-  background: "#fffbeb",
-  border: "1px solid #fde68a",
+  background: "#ffffff",
+  border: "1px solid #e2e8f0",
   borderRadius: "15px",
-  padding: "10px",
+  padding: "11px 12px",
 };
 
 const whyTitleStyle = {
@@ -12465,11 +12468,18 @@ const whyTitleStyle = {
 };
 
 const whyPointStyle = {
-  margin: "4px 0",
-  color: "#713f12",
+  display: "flex",
+  gap: "7px",
+  margin: "6px 0",
+  color: "#243b53",
   fontSize: "12px",
-  lineHeight: "16px",
+  lineHeight: "17px",
   fontWeight: 700,
+};
+
+const whyDotStyle = {
+  color: "#a16f00",
+  fontWeight: 900,
 };
 
 const summaryCompactStyle = {
@@ -12564,11 +12574,11 @@ const copyGridStyle = {
 const copyButtonStyle = {
   width: "100%",
   minWidth: 0,
-  padding: "10px 4px",
+  padding: "9px 4px",
   borderRadius: "13px",
-  border: "1px solid #fde68a",
-  background: "#fffbeb",
-  color: "#713f12",
+  border: "1px solid #d7e1e8",
+  background: "#ffffff",
+  color: "#15334b",
   fontSize: "11.5px",
   fontWeight: 900,
   cursor: "pointer",
