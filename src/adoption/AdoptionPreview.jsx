@@ -4,6 +4,7 @@ import {
   ContractorDecisionPanel,
   FieldCallRecord,
   OutcomeCapture,
+  PrivateLabBanner,
   ShadowModeField,
   SignalTimeline,
   TrustCenter,
@@ -48,6 +49,7 @@ export default function AdoptionPreview() {
   return (
     <main style={pageStyle}>
       <div style={phoneStyle}>
+        <PrivateLabBanner />
         <header style={heroStyle}>
           <div style={brandStyle}>
             <img src="/fieldcall-logo.png" alt="FieldCall" style={logoStyle} />

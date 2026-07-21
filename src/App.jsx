@@ -11,6 +11,7 @@ import {
   ContractorDecisionPanel,
   FieldCallRecord,
   OutcomeCapture,
+  PrivateLabBanner,
   ShadowModeField,
   SignalTimeline,
   TrustCenter,
@@ -3455,7 +3456,7 @@ function isDashboardElevatedPreliminaryRisk(job) {
   );
 }
 
-const dashboardReviewJobs = visibleActiveJobs
+const dashboardTodaysJobs = visibleActiveJobs
   .filter(
     (job) =>
       isSameWorkDate(job.workDate, new Date()) ||
@@ -3477,12 +3478,12 @@ const dashboardReviewJobs = visibleActiveJobs
     return preliminaryRiskDifference || sortFinalCallsFirst(a, b);
   });
 
-const dashboardReviewJobIds = new Set(
-  dashboardReviewJobs.map((job) => job.id)
+const dashboardTodayJobIds = new Set(
+  dashboardTodaysJobs.map((job) => job.id)
 );
 
 const dashboardPreliminaryJobs = visibleActiveJobs
-  .filter((job) => !dashboardReviewJobIds.has(job.id))
+  .filter((job) => !dashboardTodayJobIds.has(job.id))
   .sort(sortByWorkDateSoonestFirst);
 
 function renderJobCard(job, options = {}) {
@@ -3580,10 +3581,6 @@ const showFallbackActions =
       }}
     >
       <div style={jobCardContentStyle}>
-        <p style={jobWorkDateStyle}>
-          {formatDashboardWorkDateLabel(job.workDate, language)}
-        </p>
-
         {showActionRequired && (
           <div style={actionRequiredBadgeStyle}>
             <span>!</span>
@@ -3613,7 +3610,7 @@ const showFallbackActions =
             </div>
 
             <p style={jobMetaStyle}>
-              {job.city}, {job.state}
+              {job.city}, {job.state} · {formatDateLabel(job.workDate, language)}
               {job.lastResult?.workWindowTempRange && job.lastResult.workWindowTempRange !== "Unavailable"
                 ? ` · ${job.lastResult.workWindowTempRange}`
                 : ""}
@@ -4197,6 +4194,7 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
 
         {!guestMode && screen === "dashboard" && (
           <section style={scrollScreenStyle}>
+            <PrivateLabBanner language={language} />
             <div style={heroCardStyle}>
 <div style={heroBrandRowStyle}>
   <img
@@ -4255,6 +4253,8 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
               onEnableAlerts={handleToggleFinalCallAlerts}
             />
 
+            <FieldCallRecord language={language} record={adoption.record} />
+
             {adoption.message && (
               <div style={errorBoxStyle}>{adoption.message}</div>
             )}
@@ -4276,21 +4276,21 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
       <div style={sectionTitleWithIconStyle}>
         <span style={greenSectionIconStyle}>✓</span>
         <div>
-          <h3 style={queueSectionTitleStyle}>{t("callsToReview")}</h3>
-          <p style={queueSectionHelpStyle}>{t("callsToReviewHelp")}</p>
+          <h3 style={queueSectionTitleStyle}>{t("todaysCalls")}</h3>
+          <p style={queueSectionHelpStyle}>{t("todaysCallsHelp")}</p>
         </div>
       </div>
 
-      <span style={queueSectionCountStyle}>{dashboardReviewJobs.length}</span>
+      <span style={queueSectionCountStyle}>{dashboardTodaysJobs.length}</span>
     </div>
 
-    {dashboardReviewJobs.length === 0 && (
+    {dashboardTodaysJobs.length === 0 && (
       <div style={collapsedQueueStyle}>
-        <span>{t("noCallsToReview")}</span>
+        <span>{t("noTodaysCalls")}</span>
       </div>
     )}
 
-    {dashboardReviewJobs.map((job) => {
+    {dashboardTodaysJobs.map((job) => {
       const actionRequired = isDashboardActionRequired(job);
       const elevatedPreliminaryRisk =
         isDashboardElevatedPreliminaryRisk(job);
@@ -4367,16 +4367,12 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
 </div>
             </div>
 
-            {adoption.journey?.show_field_proof_on_dashboard !== false && (
-              <FieldCallRecord language={language} record={adoption.record} />
-            )}
-
 <div style={appActionsCardStyle}>
   <div style={appActionsWeatherStyle}>
     <span style={weatherConnectedIconStyle}>☁</span>
     <div>
       <strong>{t("weatherDataConnected")}</strong>
-      <p style={miniTextStyle}>{t("weatherDataConnectedHelp")} {weatherConnectedTime}</p>
+      <p style={miniTextStyle}>{t("weatherDataConnectedHelp")}</p>
     </div>
   </div>
 
@@ -4407,6 +4403,16 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
       <span style={dashboardSettingsChevronStyle}>›</span>
     </button>
 
+    <button
+      onClick={() => setScreen("trustCenter")}
+      style={dashboardSettingsButtonStyle}
+    >
+      <div style={dashboardSettingsTextStyle}>
+        <span>{language === "es" ? "Cómo funciona FieldCall" : "How FieldCall works"}</span>
+        <small>{language === "es" ? "Metodología, límites y criterio" : "Methodology, limits, and judgment"}</small>
+      </div>
+      <span style={dashboardSettingsChevronStyle}>›</span>
+    </button>
   </div>
 
   <div style={appActionsButtonRowStyle}>
@@ -4418,14 +4424,6 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
       {t("addToHomeScreen")}
     </button>
   </div>
-
-  <button
-    type="button"
-    onClick={() => setScreen("trustCenter")}
-    style={subtleMethodologyLinkStyle}
-  >
-    <span aria-hidden="true">ⓘ</span> {t("howRecommendationsWork")} <span>›</span>
-  </button>
 
   {nonRoutinePushAlertMessage && (
     <div style={pushAlertMessageStyle}>
@@ -4490,27 +4488,6 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
                 {nonRoutinePushAlertMessage && (
                   <div style={settingsMessageStyle}>{nonRoutinePushAlertMessage}</div>
                 )}
-              </div>
-
-              <div style={settingsPanelStyle}>
-                <p style={eyebrowStyle}>{t("dashboardPreferences")}</p>
-                <div style={settingsCompactRowStyle}>
-                  <div style={settingsCompactTextStyle}>
-                    <strong style={settingsCompactTitleStyle}>{t("showFieldProofDashboard")}</strong>
-                    <p style={settingsCompactHelpStyle}>{t("showFieldProofDashboardHelp")}</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => adoption.setShowFieldProofOnDashboard(
-                      adoption.journey?.show_field_proof_on_dashboard === false
-                    )}
-                    style={settingsCompactToggleStyle(
-                      adoption.journey?.show_field_proof_on_dashboard !== false
-                    )}
-                  >
-                    {adoption.journey?.show_field_proof_on_dashboard !== false ? t("on") : t("off")}
-                  </button>
-                </div>
               </div>
 
               <div style={settingsPanelStyle}>
@@ -5230,6 +5207,10 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
       }
     />
 
+    <SignalTimeline
+      language={language}
+      events={currentJobExperience.signalEvents}
+    />
   </>
 )}
 
@@ -5287,20 +5268,13 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
 )}
 
               <div style={whyCardStyle}>
-                <p style={whyTitleStyle}>{language === "es" ? "POR QUÉ FIELDCALL LLEGÓ A ESTA RECOMENDACIÓN" : "WHY FIELDCALL REACHED THIS RECOMMENDATION"}</p>
+                <p style={whyTitleStyle}>{t("keyDecisionFactors")}</p>
                 {getShortWhyPoints(result, form, language).map((point, index) => (
                   <p key={index} style={whyPointStyle}>
-                    <span style={whyDotStyle}>•</span>{point}
+                    • {point}
                   </p>
                 ))}
               </div>
-
-              {!guestMode && currentResultJobId && (
-                <SignalTimeline
-                  language={language}
-                  events={currentJobExperience.signalEvents}
-                />
-              )}
 
               <div style={weatherDetailsCardStyle}>
                 <button
@@ -5326,94 +5300,16 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
 
                     <p style={resultLineStyle}>
                       <strong>{t("forecastAgreement")}:</strong>{" "}
-                      {translateForecastAgreement(
-                        result.forecastAgreementLabel,
-                        language,
-                        result
-                      )}
+                      {translateForecastAgreement(result.forecastAgreementLabel, language)}
                     </p>
 
                     <p style={resultLineStyle}>
                       <strong>{t("weatherCheck")}:</strong> {translateCallTypeDisplay(result.callTypeDisplay, language)}
                     </p>
 
-                    {isPavingService(result.workType || form.workType) && (
-                      <>
-                        <p style={resultLineStyle}>
-                          <strong>{t("scoredPavingSetup")}:</strong>{" "}
-                          {getLocalizedOptionLabel(
-                            result.surfaceCondition || form.surfaceCondition,
-                            language
-                          )}
-                        </p>
-
-                        <p style={resultLineStyle}>
-                          <strong>{t("backendSurfaceInput")}:</strong>{" "}
-                          {getBackendSurfaceInputLabel(
-                            getResultScoringInput(result)?.surface_condition,
-                            language
-                          )}
-                        </p>
-
-                        {getPavingSetupScoringNote(result, language) && (
-                          <p style={scoringContextNoteStyle}>
-                            <strong>{t("scoringTreatment")}:</strong>{" "}
-                            {getPavingSetupScoringNote(result, language)}
-                          </p>
-                        )}
-                      </>
-                    )}
-
                     <p style={resultLineStyle}>
                       <strong>{t("sources")}:</strong> {result.sources}
                     </p>
-
-                    <div style={scoringAuditStyle}>
-                      <div style={scoringAuditHeaderStyle}>
-                        <strong>
-                          {t("supabaseScore")}: {result.score}{" "}
-                          {t("pointsLabel")}
-                        </strong>
-                        <span>
-                          {t("productionBucket")} {result.categoryPoints?.production ?? 0}{" · "}
-                          {t("qualityBucket")} {result.categoryPoints?.quality ?? 0}{" · "}
-                          {t("safetyBucket")} {result.categoryPoints?.safety ?? 0}
-                        </span>
-                      </div>
-
-                      {getVisibleScoreBreakdown(result).length > 0 && (
-                        <>
-                          <p style={scoringBreakdownTitleStyle}>
-                            {t("scoringBreakdown")}
-                          </p>
-                          <div style={scoringBreakdownListStyle}>
-                            {getVisibleScoreBreakdown(result).map((item, index) => (
-                              <div
-                                key={`${item?.variable_key || "score"}-${index}`}
-                                style={scoringBreakdownRowStyle}
-                              >
-                                <div style={scoringBreakdownTextStyle}>
-                                  <strong>
-                                    {item?.display_name || item?.variable_key || "Scoring rule"}
-                                  </strong>
-                                  <span>
-                                    {t("inputScored")}: {formatScoringInputValue(
-                                      item,
-                                      result,
-                                      language
-                                    )}
-                                  </span>
-                                </div>
-                                <strong style={scoringBreakdownPointsStyle}>
-                                  +{Number(item?.points || 0)}{" "}
-                                  {getScoringBucketLabel(item?.bucket, language)}
-                                </strong>
-                              </div>
-                            ))}
-                          </div>
-                        </>
-                      )}
-                    </div>
 
                     <p style={resultLineStyle}>
                       <strong>{t("highestRainSignal")}:</strong>{" "}
@@ -5428,12 +5324,15 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
 
                     {result.workWindowReason && (
                       <p style={resultLineStyle}>
-                        <strong>
-                          {result.hasReliableWindow
-                            ? t("whyThisWindow")
-                            : t("windowResult")}:
-                        </strong>{" "}
+                        <strong>{t("whyThisWindow")}:</strong>{" "}
                         {result.workWindowReason}
+                      </p>
+                    )}
+
+                    {result.hasReliableWindow && result.laterDayRiskLabel && (
+                      <p style={resultLineStyle}>
+                        <strong>{t("laterDayRisk")}:</strong>{" "}
+                        {formatLaterDayRisk(result, language)}
                       </p>
                     )}
 
@@ -5487,15 +5386,6 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
   <p style={projectDetailsSecondaryStyle}>
     {formatDateLabel(form.workDate, language)} · {getLocalizedOptionLabel(form.workType, language)}
   </p>
-
-  {isPavingService(result.workType || form.workType) && (
-    <p style={projectDetailsSecondaryStyle}>
-      {t("pavingSetup")}: {getLocalizedOptionLabel(
-        result.surfaceCondition || form.surfaceCondition,
-        language
-      )}
-    </p>
-  )}
 </div>
 
 {currentResultJobHasFinalResult && currentResultJob && (
@@ -5564,6 +5454,16 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
         })
       }
     />
+)}
+
+{!guestMode && (
+  <button
+    type="button"
+    onClick={() => setScreen("trustCenter")}
+    style={secondaryButtonStyle}
+  >
+    {language === "es" ? "Cómo se construye esta decisión" : "How this call is built"}
+  </button>
 )}
 
               <button onClick={goHome} style={guestMode ? secondaryButtonStyle : primaryButtonStyle}>
@@ -5723,14 +5623,14 @@ createCompanyHelper: "Create your company in about 60 seconds. No credit card re
     retry: "Retry",
     messages: "Messages",
     syncing: "Syncing...",
-    refresh: "Refresh",
+    refresh: "Sync",
     noSavedJobs: "No saved jobs yet.",
     finalCallsReady: "Final Calls Ready",
     finalCallsHelp: "Final calls for review.",
     noFinalCalls: "No final calls ready.",
-    callsToReview: "Calls to Review",
-    callsToReviewHelp: "Jobs requiring your attention.",
-    noCallsToReview: "No calls need review right now.",
+    todaysCalls: "Today's Calls",
+    todaysCallsHelp: "Final calls and elevated preliminary risks.",
+    noTodaysCalls: "No calls for today.",
     tomorrowsCalls: "Tomorrow's Calls",
     tomorrowsCallsHelp: "Calls that need communication before tomorrow’s work.",
     noTomorrowsCalls: "No calls for tomorrow.",
@@ -5742,12 +5642,8 @@ createCompanyHelper: "Create your company in about 60 seconds. No credit card re
     callsMade: "History",
     callHistoryLimitHelp: "Showing your 10 most recent calls.",
     noLockedCalls: "No call history yet.",
-    weatherDataConnected: "Monitoring Active",
-    weatherDataConnectedHelp: "NWS • Open-Meteo • Updated",
-    howRecommendationsWork: "How recommendations work",
-    dashboardPreferences: "Dashboard",
-    showFieldProofDashboard: "Show Field Proof on dashboard",
-    showFieldProofDashboardHelp: "Hide the summary without stopping tracking or deleting history.",
+    weatherDataConnected: "Weather Data Connected",
+    weatherDataConnectedHelp: "NWS and Open-Meteo active.",
     jobsUpdated: "Jobs updated",
     updated: "Updated",
     shareFieldCall: "Share FieldCall",
@@ -5878,19 +5774,6 @@ createCompanyHelper: "Create your company in about 60 seconds. No credit card re
     minimumWorkableWindowFinePrint: "A workable window requires at least 2 continuous hours. Rainfall amount, thunder wording, and lightning do not independently remove an hour.",
     workableWindowRequirements: "Workable Window Requirements",
     whyThisWindow: "Why this window",
-    windowResult: "Window Result",
-    scoredPavingSetup: "Scored Paving Setup",
-    backendSurfaceInput: "Backend Surface Input",
-    scoringTreatment: "Scoring Treatment",
-    exposedBaseContextOnly: "Recorded as site context. Exposure alone added 0 automatic points.",
-    exposedBasePointsApplied: "This saved assessment added {points} Quality points for exposed subgrade.",
-    supabaseScore: "Supabase Score",
-    scoringBreakdown: "Scoring Breakdown",
-    inputScored: "Input scored",
-    pointsLabel: "points",
-    productionBucket: "Production",
-    qualityBucket: "Quality",
-    safetyBucket: "Safety",
     otherQualifyingWindows: "Other qualifying windows",
     saveCompanySettings: "Save Company Settings",
     saveAndReturnDashboard: "Save & Return to Dashboard",
@@ -5971,6 +5854,7 @@ createCompanyHelper: "Create your company in about 60 seconds. No credit card re
     assessedPeriodTemp: "Assessed-period temperature",
     rainfallAssessedPeriod: "Forecast rainfall during assessed period",
     rainfallSelectedWindow: "Forecast rainfall during best window",
+    laterDayRisk: "Later-day risk",
     projectDetails: "Project Details",
     projectActions: "Project Actions",
     copyToNewDate: "Copy to new date",
@@ -6049,14 +5933,14 @@ createCompanyHelper: "Cree su empresa en aproximadamente 60 segundos. No se requ
     retry: "Reintentar",
     messages: "Mensajes",
     syncing: "Sincronizando...",
-    refresh: "Actualizar",
+    refresh: "Sync",
     noSavedJobs: "Todavía no hay trabajos guardados.",
     finalCallsReady: "Decisiones finales listas",
     finalCallsHelp: "Decisiones finales para revisar.",
     noFinalCalls: "No hay decisiones finales listas.",
-    callsToReview: "Decisiones para revisar",
-    callsToReviewHelp: "Trabajos que requieren su atención.",
-    noCallsToReview: "No hay decisiones que revisar ahora.",
+    todaysCalls: "Decisiones de hoy",
+    todaysCallsHelp: "Decisiones finales y riesgos preliminares elevados.",
+    noTodaysCalls: "No hay decisiones para hoy.",
     tomorrowsCalls: "Decisiones de mañana",
     tomorrowsCallsHelp: "Decisiones que necesitan comunicación antes del trabajo de mañana.",
     noTomorrowsCalls: "No hay decisiones para mañana.",
@@ -6068,12 +5952,8 @@ createCompanyHelper: "Cree su empresa en aproximadamente 60 segundos. No se requ
     callsMade: "Historial",
     callHistoryLimitHelp: "Se muestran sus 10 decisiones más recientes.",
     noLockedCalls: "Todavía no hay historial de decisiones.",
-    weatherDataConnected: "Monitoreo activo",
-    weatherDataConnectedHelp: "NWS • Open-Meteo • Actualizado",
-    howRecommendationsWork: "Cómo funcionan las recomendaciones",
-    dashboardPreferences: "Panel",
-    showFieldProofDashboard: "Mostrar Field Proof en el panel",
-    showFieldProofDashboardHelp: "Oculte el resumen sin detener el seguimiento ni borrar el historial.",
+    weatherDataConnected: "Datos del clima conectados",
+    weatherDataConnectedHelp: "NWS y Open-Meteo activos.",
     jobsUpdated: "Trabajos actualizados",
     updated: "Actualizado",
     shareFieldCall: "Compartir FieldCall",
@@ -6204,19 +6084,6 @@ createCompanyHelper: "Cree su empresa en aproximadamente 60 segundos. No se requ
     minimumWorkableWindowFinePrint: "Una ventana trabajable requiere al menos 2 horas continuas. La cantidad de lluvia, el texto de tormenta y los rayos no eliminan una hora por sí solos.",
     workableWindowRequirements: "Requisitos de la ventana trabajable",
     whyThisWindow: "Por qué esta ventana",
-    windowResult: "Resultado de la ventana",
-    scoredPavingSetup: "Condición de pavimentación evaluada",
-    backendSurfaceInput: "Entrada de superficie del backend",
-    scoringTreatment: "Tratamiento de calificación",
-    exposedBaseContextOnly: "Registrado como contexto del sitio. La exposición por sí sola agregó 0 puntos automáticos.",
-    exposedBasePointsApplied: "Esta evaluación guardada agregó {points} puntos de Calidad por subrasante expuesta.",
-    supabaseScore: "Puntuación de Supabase",
-    scoringBreakdown: "Desglose de calificación",
-    inputScored: "Entrada evaluada",
-    pointsLabel: "puntos",
-    productionBucket: "Producción",
-    qualityBucket: "Calidad",
-    safetyBucket: "Seguridad",
     otherQualifyingWindows: "Otras ventanas que califican",
     saveCompanySettings: "Guardar configuración",
     saveAndReturnDashboard: "Guardar y volver al panel",
@@ -6297,6 +6164,7 @@ createCompanyHelper: "Cree su empresa en aproximadamente 60 segundos. No se requ
     assessedPeriodTemp: "Temperatura del período evaluado",
     rainfallAssessedPeriod: "Lluvia pronosticada durante el período evaluado",
     rainfallSelectedWindow: "Lluvia pronosticada durante la mejor ventana",
+    laterDayRisk: "Riesgo más tarde en el día",
     projectDetails: "Detalles del proyecto",
     projectActions: "Acciones del proyecto",
     copyToNewDate: "Copiar a nueva fecha",
@@ -6664,29 +6532,17 @@ function translateWorkableWindowLabel(value, language = "en") {
   return value;
 }
 
-function translateForecastAgreement(value, language = "en", result = null) {
+function translateForecastAgreement(value, language = "en") {
   const normalized = String(value || "").toLowerCase();
-  const source = String(result?.higherRiskSource || "").trim();
-  const hasNamedSource =
-    source &&
-    !["neither", "available source", "backend scoring"].includes(
-      source.toLowerCase()
-    );
 
   if (language !== "es") {
-    if (normalized.includes("severe disagreement")) {
-      return hasNamedSource
-        ? `NWS and Open-Meteo strongly disagree. FieldCall used ${source} as the higher-risk approved source.`
-        : "NWS and Open-Meteo strongly disagree. FieldCall used the higher-risk approved source.";
-    }
+    if (normalized.includes("severe disagreement")) return "Forecast signals are mixed.";
     return value;
   }
 
   if (!normalized || normalized === "unavailable") return "No disponible";
   if (normalized.includes("forecast signals are mixed") || normalized.includes("severe disagreement")) {
-    return hasNamedSource
-      ? `NWS y Open-Meteo discrepan considerablemente. FieldCall usó ${source} como la fuente aprobada de mayor riesgo.`
-      : "NWS y Open-Meteo discrepan considerablemente. FieldCall usó la fuente aprobada de mayor riesgo.";
+    return "Las señales del pronóstico son mixtas.";
   }
   if (normalized.includes("good") || normalized.includes("strong")) return "Buen acuerdo entre fuentes";
   if (normalized.includes("moderate")) return "Acuerdo moderado entre fuentes";
@@ -6842,36 +6698,6 @@ function formatInchesForDisplay(value) {
 }
 
 function formatRainfallAssessmentDisplay(result) {
-  const scoringInput = getResultScoringInput(result);
-  const nwsRaw = scoringInput?.nws_qpf_rainfall_total;
-  const openMeteoRaw = scoringInput?.open_meteo_rainfall_total;
-  const hasNws =
-    nwsRaw !== null &&
-    nwsRaw !== undefined &&
-    nwsRaw !== "" &&
-    Number.isFinite(Number(nwsRaw));
-  const hasOpenMeteo =
-    openMeteoRaw !== null &&
-    openMeteoRaw !== undefined &&
-    openMeteoRaw !== "" &&
-    Number.isFinite(Number(openMeteoRaw));
-
-  if (hasNws || hasOpenMeteo) {
-    const sourceValues = [];
-
-    if (hasNws) {
-      sourceValues.push(`NWS QPF: ${formatInchesForDisplay(nwsRaw)}`);
-    }
-
-    if (hasOpenMeteo) {
-      sourceValues.push(
-        `Open-Meteo: ${formatInchesForDisplay(openMeteoRaw)}`
-      );
-    }
-
-    return sourceValues.join(" · ");
-  }
-
   const hasMinimum =
     result?.rainfallTotalMin !== null &&
     result?.rainfallTotalMin !== undefined &&
@@ -6900,133 +6726,6 @@ function formatRainfallAssessmentDisplay(result) {
       result?.rainfallAssessedPeriod ?? result?.totalPrecipitationInches
     ) || "Unavailable"
   );
-}
-
-function createScoringInputAuditSnapshot(input) {
-  if (!input || typeof input !== "object") return null;
-
-  const { hourly_weather: hourlyWeather, ...auditFields } = input;
-
-  return {
-    ...auditFields,
-    hourly_weather_count: Array.isArray(hourlyWeather)
-      ? hourlyWeather.length
-      : 0,
-  };
-}
-
-function getResultScoringInput(result) {
-  return (
-    result?.effectiveScoringInput ||
-    result?.backendScoring?.effective_input ||
-    result?.combinedSourceProfile ||
-    result?.rawBackendInput ||
-    {}
-  );
-}
-
-function getVisibleScoreBreakdown(result) {
-  return (Array.isArray(result?.scoreBreakdown) ? result.scoreBreakdown : [])
-    .filter((item) => Number(item?.points) !== 0);
-}
-
-function getScoringBucketLabel(bucket, language = "en") {
-  const normalized = String(bucket || "").toLowerCase();
-
-  if (language === "es") {
-    if (normalized === "production") return "Producción";
-    if (normalized === "quality") return "Calidad";
-    if (normalized === "safety") return "Seguridad";
-  }
-
-  if (normalized === "production") return "Production";
-  if (normalized === "quality") return "Quality";
-  if (normalized === "safety") return "Safety";
-  return bucket || "Score";
-}
-
-function getBackendSurfaceInputLabel(value, language = "en") {
-  const normalized = String(value || "").toLowerCase();
-
-  if (language === "es") {
-    if (normalized === "exposed_base") return "Base/subrasante expuesta";
-    if (normalized === "milled_surface") return "Superficie fresada";
-    if (normalized === "existing_surface") return "Superficie existente / recapa";
-  }
-
-  if (normalized === "exposed_base") return "Exposed base/subgrade";
-  if (normalized === "milled_surface") return "Milled surface";
-  if (normalized === "existing_surface") return "Existing surface / overlay";
-  return value || (language === "es" ? "No disponible" : "Unavailable");
-}
-
-function getPavingSetupScoringNote(result, language = "en") {
-  const scoringInput = getResultScoringInput(result);
-  const isExposed =
-    result?.surfaceCondition === "Subgrade currently exposed" ||
-    scoringInput?.surface_condition === "exposed_base";
-
-  if (!isExposed) return "";
-
-  const baseExposureItem = getVisibleScoreBreakdown(result).find(
-    (item) => item?.variable_key === "base_exposure"
-  );
-  const points = Number(baseExposureItem?.points || 0);
-
-  if (points > 0) {
-    return translateAppText(language, "exposedBasePointsApplied", {
-      points,
-    });
-  }
-
-  return translateAppText(language, "exposedBaseContextOnly");
-}
-
-function formatScoringInputValue(item, result, language = "en") {
-  const variableKey = String(item?.variable_key || "");
-  const rawValue = item?.input_value;
-
-  if (variableKey === "base_exposure") {
-    return getBackendSurfaceInputLabel(
-      getResultScoringInput(result)?.surface_condition || rawValue,
-      language
-    );
-  }
-
-  if (rawValue === null || rawValue === undefined || rawValue === "") {
-    return language === "es" ? "No disponible" : "Unavailable";
-  }
-
-  if (variableKey.includes("rainfall_total") || variableKey.includes("rainfall_within")) {
-    return formatInchesForDisplay(rawValue) || String(rawValue);
-  }
-
-  if (variableKey.includes("probability")) {
-    const value = Number(rawValue);
-    return Number.isFinite(value) ? `${Math.round(value)}%` : String(rawValue);
-  }
-
-  if (variableKey.includes("hours")) {
-    const value = Number(rawValue);
-    if (Number.isFinite(value)) {
-      const unit = language === "es"
-        ? value === 1
-          ? "hora"
-          : "horas"
-        : value === 1
-        ? "hour"
-        : "hours";
-      return `${value} ${unit}`;
-    }
-  }
-
-  if (typeof rawValue === "string") {
-    return rawValue
-      .replaceAll("_", " ")
-      .replace(/\b\w/g, (letter) => letter.toUpperCase());
-  }
-
-  return String(rawValue);
 }
 
 function formatWorkWindowRequirements(result, language = "en") {
@@ -7355,19 +7054,7 @@ callTypeDisplay: result.callTypeDisplay,
 
     openMeteoSource: result.openMeteoSource,
     nwsSource: result.nwsSource,
-    rawBackendInput: createScoringInputAuditSnapshot(
-      result.rawBackendInput || result.backendInput
-    ),
-    effectiveScoringInput:
-      result.effectiveScoringInput ||
-      result.backendScoring?.effective_input ||
-      result.combinedSourceProfile ||
-      null,
-    combinedSourceProfile:
-      result.effectiveScoringInput ||
-      result.backendScoring?.effective_input ||
-      result.combinedSourceProfile ||
-      null,
+    combinedSourceProfile: result.combinedSourceProfile,
 
     surfaceCondition: result.surfaceCondition,
     baseExposed: result.baseExposed,
@@ -7412,32 +7099,6 @@ function formatFullDateLabel(dateString, language = "en") {
     day: "numeric",
     year: "numeric",
   });
-}
-
-function formatDashboardWorkDateLabel(dateString, language = "en") {
-  if (!dateString) return translateAppText(language, "noDate");
-
-  const today = new Date();
-  const tomorrow = new Date();
-  tomorrow.setDate(today.getDate() + 1);
-
-  const inputDate = new Date(`${dateString}T12:00:00`);
-  const locale = language === "es" ? "es-US" : "en-US";
-  const weekdayDate = inputDate.toLocaleDateString(locale, {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  });
-
-  if (inputDate.toDateString() === today.toDateString()) {
-    return `${translateAppText(language, "today")} · ${weekdayDate}`;
-  }
-
-  if (inputDate.toDateString() === tomorrow.toDateString()) {
-    return `${translateAppText(language, "tomorrow")} · ${weekdayDate}`;
-  }
-
-  return weekdayDate;
 }
 
 function formatDateLabel(dateString, language = "en") {
@@ -8539,6 +8200,30 @@ scoreText: backendScoreText,
     )
       ? selectedWindowDetails.alternative_windows
       : [],
+    laterDayRiskLevel:
+      data?.later_day_risk_level ||
+      effectiveBackendInput.later_day_risk_level ||
+      "none",
+    laterDayRiskLabel:
+      data?.later_day_risk_label ||
+      effectiveBackendInput.later_day_risk_label ||
+      "",
+    firstLaterRiskTime:
+      data?.first_later_risk_time ||
+      effectiveBackendInput.first_later_risk_time ||
+      null,
+    hoursUntilLaterRisk:
+      data?.hours_until_later_risk ??
+      effectiveBackendInput.hours_until_later_risk ??
+      null,
+    rainDisruptionHoursSelectedWindow:
+      data?.rain_disruption_hours_selected_window ??
+      effectiveBackendInput.rain_disruption_hours_selected_window ??
+      null,
+    rainDisruptionHoursAssessedPeriod:
+      data?.rain_disruption_hours_assessed_period ??
+      effectiveBackendInput.rain_disruption_hours_assessed_period ??
+      null,
     workWindowTempRange:
       (data?.has_reliable_window === true
         ? data?.selected_window_temperature_range ||
@@ -8586,8 +8271,8 @@ scoreText: backendScoreText,
     nwsAvailable: Boolean(nwsWeather?.available),
     nwsPeakRainProbability: effectiveBackendInput.nws_peak_rain_probability,
     nwsPeakRainProbabilityDisplay:
-      typeof effectiveBackendInput.nws_peak_rain_probability === "number"
-        ? `${effectiveBackendInput.nws_peak_rain_probability}%`
+      typeof backendInput.nws_peak_rain_probability === "number"
+        ? `${backendInput.nws_peak_rain_probability}%`
         : "Unavailable",
     nwsPeakRainProbabilityHour: nwsWeather?.peakRainProbabilityHour ?? null,
     nwsPeakRainProbabilityHourDisplay:
@@ -8597,12 +8282,11 @@ scoreText: backendScoreText,
     nwsSignal: nwsWeather?.available ? "Backend scored" : "UNAVAILABLE",
     openMeteoSignal: openMeteoWeather?.hourly?.time ? "Backend scored" : "UNAVAILABLE",
 
-    forecastAgreementLabel: effectiveBackendInput.forecast_agreement_label,
-    forecastAgreementShortLabel: effectiveBackendInput.forecast_agreement,
-    sourceSpreadLevel: effectiveBackendInput.forecast_agreement,
+    forecastAgreementLabel: backendInput.forecast_agreement_label,
+    forecastAgreementShortLabel: backendInput.forecast_agreement,
+    sourceSpreadLevel: backendInput.forecast_agreement,
     sourceSpreadPoints: null,
-    higherRiskSource:
-      effectiveBackendInput.higher_risk_source || "Backend scoring",
+    higherRiskSource: backendInput.higher_risk_source || "Backend scoring",
 
     operationalNote: hardStopTriggered
   ? "FieldCall identified a hard stop condition inside the final call window."
@@ -8610,12 +8294,10 @@ scoreText: backendScoreText,
 
     backendInput,
     backendScoring: data,
-    rawBackendInput: createScoringInputAuditSnapshot(backendInput),
-    effectiveScoringInput: effectiveBackendInput,
     communications: data?.communications || {},
     openMeteoSource: null,
     nwsSource: null,
-    combinedSourceProfile: effectiveBackendInput,
+    combinedSourceProfile: backendInput,
 
     surfaceCondition: isPavingService(form.workType) ? form.surfaceCondition || "Subgrade exposed & paved same day" : "Subgrade exposed & paved same day",
     baseExposed: isPavingService(form.workType)
@@ -8637,12 +8319,6 @@ async function saveAssessmentToBackend({
     throw new Error("Assessment history save failed: Supabase is not configured.");
   }
 
-  const effectiveInput = scoringResult?.effective_input || backendInput;
-  const scoringResultForStorage = {
-    ...(scoringResult || {}),
-    raw_input_data: createScoringInputAuditSnapshot(backendInput),
-  };
-
   const { data: savedAssessment, error } = await supabase
   .from("assessments")
   .insert({
@@ -8658,8 +8334,8 @@ async function saveAssessmentToBackend({
 
     is_final_call_window: timing.isFinal,
 
-    input_data: effectiveInput,
-    scoring_result: scoringResultForStorage,
+    input_data: backendInput,
+    scoring_result: scoringResult,
 
     signal: scoringResult?.display_signal ?? scoringResult?.signal ?? null,
 total_score: scoringResult?.total_score ?? null,
@@ -8668,8 +8344,8 @@ quality_score: scoringResult?.quality_score ?? null,
 safety_score: scoringResult?.safety_score ?? null,
 
     sources_checked:
-      effectiveInput?.nws_qpf_rainfall_total !== null &&
-      effectiveInput?.nws_qpf_rainfall_total !== undefined
+      backendInput?.nws_qpf_rainfall_total !== null &&
+      backendInput?.nws_qpf_rainfall_total !== undefined
         ? "NWS hourly forecast and grid QPF, Open-Meteo"
         : "NWS hourly forecast, Open-Meteo",
   })
@@ -8759,23 +8435,29 @@ const workableWindowHours =
   );
 
   return {
-    workable_window_hours: workableWindowHours ?? 0,
-    rainfall_total_work_window: totalPrecipitation ?? 0,
-    rainfall_within_5_hours_of_start: firstFiveHoursPrecip ?? 0,
-    rain_disruption_hours: rainDisruptionHours,
-    average_rain_probability: averageRainProbability ?? 0,
-    peak_rain_probability: peakRainProbability ?? 0,
-    peak_occurs_core_hours: peakOccursCoreHours,
+    // Diagnostic-only frontend summaries. Supabase is the sole authority for
+    // selected-window boundaries and all scoring keys.
+    frontend_workable_window_hours_diagnostic: workableWindowHours ?? 0,
+    rainfall_assessed_period_input: totalPrecipitation ?? 0,
+    rainfall_first_5_assessed_period_input: firstFiveHoursPrecip ?? 0,
+    rain_disruption_hours_assessed_period_input: rainDisruptionHours,
+    average_rain_probability_assessed_period_input:
+      averageRainProbability ?? 0,
+    peak_rain_probability_assessed_period_input:
+      peakRainProbability ?? 0,
+    peak_occurs_core_hours_assessed_period_input: peakOccursCoreHours,
     forecast_volatility: "none",
     forecast_agreement: forecastAgreement.level,
     forecast_agreement_label: forecastAgreement.label,
     radar_conflict: "none",
-    air_temperature_condition: airTemperatureCondition,
+    air_temperature_condition_assessed_period_input:
+      airTemperatureCondition,
 
     hourly_weather: hourlyWeather,
-    hourly_payload_version: "cross-service-v1",
+    hourly_payload_version: "cross-service-v2-canonical-window",
     hourly_merge_version: "selected-higher-total-source-v2",
-    weather_input_version: "approved-source-accumulation-workable-window-v3",
+    weather_input_version: "backend-canonical-hourly-window-v4",
+    authoritative_work_window_source: "score_fieldcall_assessment",
     workable_rain_probability_threshold: normalizeWorkableRainThreshold(
       form.workableRainProbabilityThreshold
     ),
@@ -8795,8 +8477,10 @@ const workableWindowHours =
       ? getBackendSurfaceCondition(form)
       : "existing_surface",
     multi_day_saturation_trend: "none",
-    lightning_risk: getLightningRiskFromText(summaryText),
-    severe_weather_risk: getSevereWeatherRiskFromText(summaryText),
+    lightning_risk_assessed_period_input:
+      getLightningRiskFromText(summaryText),
+    severe_weather_risk_assessed_period_input:
+      getSevereWeatherRiskFromText(summaryText),
     temperature_range: temperatureRange,
     best_low_precip_hours: getBestLowPrecipHours(openHours.length ? openHours : nwsHours),
 
@@ -9186,11 +8870,9 @@ function getAirTemperatureCondition(hours) {
 
   if (low < 40) return "below_40F";
   if (low < 45) return "40F_to_44F";
-  if (low >= 48 && low < 50 && rising) {
-    return "48F_to_49F_and_rising_into_upper_50s";
-  }
+  if (low < 50 && rising) return "48F_to_49F_and_rising_into_upper_50s";
   if (low < 50) return "45F_to_49F_not_rising";
-  return "50F_or_higher_and_rising";
+  return rising ? "50F_or_higher_and_rising" : "45F_to_49F_not_rising";
 }
 
 function getLightningRiskFromText(text) {
@@ -9223,6 +8905,7 @@ function getBackendRiskFactors({
   if (backendInput.workable_window_hours < 6) factors.push("Limited workable production window");
   if (backendInput.peak_rain_probability >= 65 && backendInput.peak_occurs_core_hours) factors.push("High peak rain chance during core hours");
   if (backendInput.air_temperature_condition !== "50F_or_higher_and_rising") factors.push("Air temperature below preferred paving baseline");
+  if (backendInput.surface_condition === "exposed_base") factors.push("Subgrade currently exposed increases moisture sensitivity");
   if (backendInput.lightning_risk !== "none") factors.push("Lightning or thunderstorm risk present");
 
   if (!factors.length) factors.push("Normal monitoring still required");
@@ -9637,6 +9320,27 @@ function getTemperatureRangeFromHours(hours) {
   const highTemp = Math.round(Math.max(...temperatures));
 
   return `${lowTemp}°–${highTemp}°F`;
+}
+
+function formatLaterDayRisk(result, language = "en") {
+  const level = String(result?.laterDayRiskLevel || "none").toLowerCase();
+
+  if (language === "es") {
+    if (level === "high") {
+      return "Las condiciones empeoran después de la ventana seleccionada. Mantenga las tormentas o lluvias más intensas fuera del período de trabajo planificado.";
+    }
+    if (level === "moderate") {
+      return "Parte del riesgo meteorológico regresa después de la ventana seleccionada y debe considerarse en la programación y el cierre del trabajo.";
+    }
+    if (level === "low" || level === "none") {
+      return "No se indica una preocupación meteorológica importante después de la ventana seleccionada.";
+    }
+  }
+
+  return (
+    result?.laterDayRiskLabel ||
+    "No meaningful later-day weather concern is indicated after the selected window."
+  );
 }
 
 // =====================================================
@@ -10697,13 +10401,13 @@ const premiumMiniCardStyle = {
 };
 
 const appActionsCardStyle = {
-  marginTop: "7px",
+  marginTop: "9px",
   background: "rgba(255,255,255,0.92)",
   borderRadius: "18px",
-  padding: "9px 10px 8px",
+  padding: "10px",
   border: "1px solid rgba(226, 232, 240, 0.90)",
   display: "grid",
-  gap: "7px",
+  gap: "9px",
   boxShadow: "0 8px 20px rgba(15, 23, 42, 0.05)",
 };
 
@@ -10719,7 +10423,7 @@ const appActionsWeatherStyle = {
   minWidth: 0,
   color: "#0f172a",
   fontSize: "12px",
-  padding: "1px 2px 7px",
+  padding: "2px 2px 9px",
   borderBottom: "1px solid #eef2f7",
 };
 
@@ -10744,26 +10448,13 @@ const appActionsButtonRowStyle = {
 
 const appActionButtonStyle = {
   width: "100%",
-  padding: "7px 6px",
+  padding: "8px 6px",
   borderRadius: "11px",
   border: "1px solid #e2e8f0",
   background: "#f8fafc",
   color: "#475569",
   fontSize: "10px",
   fontWeight: 900,
-  cursor: "pointer",
-};
-
-const subtleMethodologyLinkStyle = {
-  width: "100%",
-  marginTop: "6px",
-  padding: "5px 4px 1px",
-  border: 0,
-  background: "transparent",
-  color: "#718096",
-  fontSize: "12px",
-  fontWeight: 700,
-  textAlign: "center",
   cursor: "pointer",
 };
 
@@ -10794,7 +10485,7 @@ const installHelpStyle = {
   gridColumn: "1 / -1",
   background: "#fffbeb",
   border: "1px solid #fde68a",
-  color: "#a16f00",
+  color: "#713f12",
   borderRadius: "14px",
   padding: "10px",
   fontSize: "12px",
@@ -10966,13 +10657,13 @@ const emptyStateButtonStyle = {
 
 const jobListStyle = {
   display: "grid",
-  gap: "6px",
-  marginTop: "6px",
+  gap: "7px",
+  marginTop: "8px",
 };
 
 const queueSectionHeaderStyle = {
   marginTop: "3px",
-  padding: "7px 10px",
+  padding: "8px 10px",
   borderRadius: "14px",
   background: "#f8fafc",
   border: "1px solid #e2e8f0",
@@ -11067,8 +10758,8 @@ const drawerCountPillStyle = {
 
 const preliminaryDrawerButtonStyle = {
   width: "100%",
-  marginTop: "6px",
-  padding: "9px 12px",
+  marginTop: "8px",
+  padding: "11px 12px",
   borderRadius: "14px",
   border: "1px solid #e2e8f0",
   background: "#ffffff",
@@ -11090,20 +10781,10 @@ const preliminaryDrawerContentStyle = {
 const jobCardStyle = {
   border: "1px solid #e2e8f0",
   borderRadius: "14px",
-  padding: "7px 10px",
+  padding: "9px 10px",
   background: "#ffffff",
   boxShadow: "0 4px 12px rgba(15, 23, 42, 0.03)",
   overflow: "hidden",
-};
-
-const jobWorkDateStyle = {
-  margin: 0,
-  paddingBottom: "6px",
-  borderBottom: "1px solid rgba(148, 163, 184, 0.28)",
-  color: "#0f172a",
-  fontSize: "12px",
-  lineHeight: "15px",
-  fontWeight: 900,
 };
 
 const jobCardContentStyle = {
@@ -11114,7 +10795,7 @@ const jobCardContentStyle = {
 const jobCompactTopRowStyle = {
   display: "grid",
   gridTemplateColumns: "58px minmax(0, 1fr)",
-  gap: "8px",
+  gap: "10px",
   alignItems: "center",
   minWidth: 0,
 };
@@ -11262,8 +10943,8 @@ const latestResultLineStyle = {
 };
 
 const compactReasonRowStyle = {
-  marginTop: "6px",
-  paddingTop: "6px",
+  marginTop: "8px",
+  paddingTop: "8px",
   borderTop: "1px solid rgba(226, 232, 240, 0.9)",
   display: "grid",
   gridTemplateColumns: "34px 1fr",
@@ -11307,7 +10988,7 @@ const jobButtonGridStyle = {
 
 const compactJobButtonGridStyle = {
   display: "flex",
-  gap: "7px",
+  gap: "8px",
   marginTop: 0,
   minWidth: 0,
   width: "100%",
@@ -11375,8 +11056,8 @@ const viewJobButtonStyle = {
   background: "#ffffff",
   color: "#071528",
   borderRadius: "11px",
-  padding: "8px 8px",
-  minHeight: "34px",
+  padding: "9px 8px",
+  minHeight: "36px",
   fontSize: "12px",
   lineHeight: "14px",
   fontWeight: 900,
@@ -11393,8 +11074,8 @@ const runJobButtonStyle = {
   background: "#071528",
   color: "white",
   borderRadius: "11px",
-  padding: "8px 8px",
-  minHeight: "34px",
+  padding: "9px 8px",
+  minHeight: "36px",
   fontSize: "12px",
   lineHeight: "14px",
   fontWeight: 900,
@@ -11465,8 +11146,8 @@ const messagesJobButtonStyle = {
 };
 
 const jobsSyncFooterStyle = {
-  marginTop: "8px",
-  paddingTop: "8px",
+  marginTop: "10px",
+  paddingTop: "10px",
   borderTop: "1px solid #eef2f7",
   color: "#64748b",
   fontSize: "11px",
@@ -12272,8 +11953,8 @@ const checkboxHelpStyle = {
 const primaryButtonStyle = {
   width: "100%",
   marginTop: "10px",
-  padding: "11px 13px",
-  borderRadius: "15px",
+  padding: "13px",
+  borderRadius: "16px",
   border: "none",
   background: "#071528",
   color: "white",
@@ -12667,73 +12348,6 @@ const weatherDetailsContentStyle = {
   background: "#f8fafc",
 };
 
-const scoringContextNoteStyle = {
-  margin: "6px 0",
-  padding: "8px 9px",
-  border: "1px solid #dbeafe",
-  borderRadius: "10px",
-  background: "#eff6ff",
-  color: "#1e3a5f",
-  fontSize: "11px",
-  lineHeight: "16px",
-  fontWeight: 700,
-};
-
-const scoringAuditStyle = {
-  margin: "9px 0",
-  padding: "9px",
-  border: "1px solid #e2e8f0",
-  borderRadius: "12px",
-  background: "#ffffff",
-};
-
-const scoringAuditHeaderStyle = {
-  display: "grid",
-  gap: "3px",
-  color: "#0f172a",
-  fontSize: "12px",
-  lineHeight: "16px",
-};
-
-const scoringBreakdownTitleStyle = {
-  margin: "9px 0 5px",
-  color: "#64748b",
-  fontSize: "10px",
-  fontWeight: 900,
-  textTransform: "uppercase",
-  letterSpacing: "0.05em",
-};
-
-const scoringBreakdownListStyle = {
-  display: "grid",
-  gap: "6px",
-};
-
-const scoringBreakdownRowStyle = {
-  display: "flex",
-  alignItems: "flex-start",
-  justifyContent: "space-between",
-  gap: "10px",
-  paddingTop: "6px",
-  borderTop: "1px solid #f1f5f9",
-};
-
-const scoringBreakdownTextStyle = {
-  display: "grid",
-  gap: "2px",
-  color: "#243b53",
-  fontSize: "11px",
-  lineHeight: "15px",
-};
-
-const scoringBreakdownPointsStyle = {
-  flex: "0 0 auto",
-  color: "#0f172a",
-  fontSize: "11px",
-  lineHeight: "15px",
-  textAlign: "right",
-};
-
 const projectDetailsCardStyle = {
   marginTop: "9px",
   background: "#ffffff",
@@ -12817,10 +12431,10 @@ const actionTextStyle = {
 
 const whyCardStyle = {
   marginTop: "9px",
-  background: "#ffffff",
-  border: "1px solid #e2e8f0",
+  background: "#fffbeb",
+  border: "1px solid #fde68a",
   borderRadius: "15px",
-  padding: "11px 12px",
+  padding: "10px",
 };
 
 const whyTitleStyle = {
@@ -12833,18 +12447,11 @@ const whyTitleStyle = {
 };
 
 const whyPointStyle = {
-  display: "flex",
-  gap: "7px",
-  margin: "6px 0",
-  color: "#243b53",
+  margin: "4px 0",
+  color: "#713f12",
   fontSize: "12px",
-  lineHeight: "17px",
+  lineHeight: "16px",
   fontWeight: 700,
-};
-
-const whyDotStyle = {
-  color: "#a16f00",
-  fontWeight: 900,
 };
 
 const summaryCompactStyle = {
@@ -12939,11 +12546,11 @@ const copyGridStyle = {
 const copyButtonStyle = {
   width: "100%",
   minWidth: 0,
-  padding: "9px 4px",
+  padding: "10px 4px",
   borderRadius: "13px",
-  border: "1px solid #d7e1e8",
-  background: "#ffffff",
-  color: "#15334b",
+  border: "1px solid #fde68a",
+  background: "#fffbeb",
+  color: "#713f12",
   fontSize: "11.5px",
   fontWeight: 900,
   cursor: "pointer",

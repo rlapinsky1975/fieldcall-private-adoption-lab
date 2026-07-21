@@ -4,7 +4,6 @@ const EMPTY_JOURNEY = {
   shadow_mode_enabled: true,
   risk_posture_confirmed_at: null,
   activation_completed_at: null,
-  show_field_proof_on_dashboard: true,
 };
 
 export function useAdoptionExperience({
@@ -131,11 +130,6 @@ export function useAdoptionExperience({
 
   const confirmRiskPosture = useCallback(
     () => upsertJourney({ risk_posture_confirmed_at: new Date().toISOString() }),
-    [upsertJourney]
-  );
-
-  const setShowFieldProofOnDashboard = useCallback(
-    (enabled) => upsertJourney({ show_field_proof_on_dashboard: Boolean(enabled) }),
     [upsertJourney]
   );
 
@@ -299,7 +293,6 @@ export function useAdoptionExperience({
     reload: load,
     setShadowMode,
     confirmRiskPosture,
-    setShowFieldProofOnDashboard,
     submitDecision,
     submitOutcome,
     getJobExperience,

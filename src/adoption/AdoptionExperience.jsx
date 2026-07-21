@@ -3,6 +3,8 @@ import "./adoption.css";
 
 const COPY = {
   en: {
+    privateTest: "PRIVATE TEST",
+    privateTestHelp: "New trust and workflow features are isolated from the public beta.",
     setupTitle: "Finish setting up FieldCall",
     setupHelp: "Three practical steps put your first job under active monitoring.",
     realJob: "Save one real job",
@@ -16,11 +18,12 @@ const COPY = {
     confirm: "Confirm current standard",
     enable: "Enable alerts",
     monitoring: "FieldCall is monitoring your first job.",
-    recordHelp: "Built from your own operation over time.",
+    recordTitle: "Your FieldCall Record",
+    recordHelp: "Proof from your own operation—not a generic accuracy claim.",
     monitored: "Jobs monitored",
-    changed: "Recommendation changes",
-    calls: "Final decisions",
-    outcomes: "Verified outcomes",
+    changed: "Calls that changed",
+    calls: "Your calls saved",
+    outcomes: "Outcomes captured",
     shadowTitle: "Run beside your judgment",
     shadowHelp: "Make your own call first. FieldCall will compare—not replace it.",
     yourRead: "Before you see FieldCall, what is your current read?",
@@ -28,22 +31,16 @@ const COPY = {
     go: "GO",
     delay: "DELAY",
     noGo: "NO GO",
-    finalTitle: "Your Decision",
+    finalTitle: "My Final Call",
     finalHelp: "FieldCall provides the framework. You still own the decision.",
-    localContext: "Local Conditions",
-    localHelp: "Add anything that influenced your decision but is not reflected in the forecast.",
+    localContext: "Local context FieldCall cannot see",
     localPlaceholder: "Site moisture, drainage, haul distance, client restrictions…",
-    saveCall: "Save Decision",
+    saveCall: "Save my call",
     saved: "Your call is saved.",
     comparison: "FieldCall assessment",
     yourDecision: "Your decision",
-    timelineTitle: "Monitoring History",
-    timelineHelp: "See how the recommendation evolved over time.",
-    timelinePoints: "monitoring points",
-    noMaterialChange: "No material change.",
-    refreshCompleted: "Monitoring refresh completed.",
-    recommendationChanged: "Recommendation changed",
-    windowChanged: "Workable window changed",
+    timelineTitle: "How this call changed",
+    timelineHelp: "Each check is preserved so you can see what moved and when.",
     noTimeline: "The first monitoring point will appear after this job is saved and checked.",
     outcomeTitle: "What happened on this job?",
     outcomeHelp: "Two quick answers help build proof and improve the framework.",
@@ -60,6 +57,8 @@ const COPY = {
     outcomeSaved: "Outcome saved. This now counts in your FieldCall Record.",
   },
   es: {
+    privateTest: "PRUEBA PRIVADA",
+    privateTestHelp: "Las nuevas funciones de confianza y flujo están separadas de la beta pública.",
     setupTitle: "Termine de configurar FieldCall",
     setupHelp: "Tres pasos prácticos ponen su primer trabajo bajo monitoreo activo.",
     realJob: "Guarde un trabajo real",
@@ -73,11 +72,12 @@ const COPY = {
     confirm: "Confirmar estándar actual",
     enable: "Activar alertas",
     monitoring: "FieldCall está monitoreando su primer trabajo.",
-    recordHelp: "Creado con su propia operación a lo largo del tiempo.",
+    recordTitle: "Su historial de FieldCall",
+    recordHelp: "Prueba de su propia operación, no una promesa genérica de precisión.",
     monitored: "Trabajos monitoreados",
-    changed: "Cambios de recomendación",
-    calls: "Decisiones finales",
-    outcomes: "Resultados verificados",
+    changed: "Decisiones que cambiaron",
+    calls: "Sus decisiones guardadas",
+    outcomes: "Resultados registrados",
     shadowTitle: "Trabaje junto a su criterio",
     shadowHelp: "Decida primero. FieldCall compara; no reemplaza su criterio.",
     yourRead: "Antes de ver FieldCall, ¿cuál es su lectura actual?",
@@ -85,22 +85,16 @@ const COPY = {
     go: "ADELANTE",
     delay: "DEMORAR",
     noGo: "NO PROCEDER",
-    finalTitle: "Su decisión",
+    finalTitle: "Mi decisión final",
     finalHelp: "FieldCall aporta el marco. Usted sigue siendo responsable de la decisión.",
-    localContext: "Condiciones locales",
-    localHelp: "Agregue cualquier factor que influyó en su decisión y no aparece en el pronóstico.",
+    localContext: "Contexto local que FieldCall no puede ver",
     localPlaceholder: "Humedad, drenaje, distancia de acarreo, restricciones del cliente…",
-    saveCall: "Guardar decisión",
+    saveCall: "Guardar mi decisión",
     saved: "Su decisión está guardada.",
     comparison: "Evaluación de FieldCall",
     yourDecision: "Su decisión",
-    timelineTitle: "Historial de monitoreo",
-    timelineHelp: "Vea cómo evolucionó la recomendación con el tiempo.",
-    timelinePoints: "puntos de monitoreo",
-    noMaterialChange: "Sin cambios importantes.",
-    refreshCompleted: "Actualización de monitoreo completada.",
-    recommendationChanged: "La recomendación cambió",
-    windowChanged: "La ventana viable cambió",
+    timelineTitle: "Cómo cambió esta decisión",
+    timelineHelp: "Cada revisión se conserva para mostrar qué cambió y cuándo.",
     noTimeline: "El primer punto aparecerá después de guardar y revisar este trabajo.",
     outcomeTitle: "¿Qué ocurrió en este trabajo?",
     outcomeHelp: "Dos respuestas rápidas ayudan a crear evidencia y mejorar el marco.",
@@ -120,6 +114,16 @@ const COPY = {
 
 function useCopy(language) {
   return COPY[language === "es" ? "es" : "en"];
+}
+
+export function PrivateLabBanner({ language = "en" }) {
+  const c = useCopy(language);
+  return (
+    <div className="fcx-lab-banner">
+      <span>{c.privateTest}</span>
+      <p>{c.privateTestHelp}</p>
+    </div>
+  );
 }
 
 function ChecklistRow({ done, title, help, children }) {
@@ -144,7 +148,17 @@ export function ActivationChecklist({
   onEnableAlerts,
 }) {
   const c = useCopy(language);
-  if (!activation || activation.complete) return null;
+  if (!activation || activation.complete) {
+    return (
+      <div className="fcx-activation-complete">
+        <span>✓</span>
+        <div>
+          <strong>{c.monitoring}</strong>
+          <p>{c.setupHelp}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <section className="fcx-card fcx-activation">
@@ -189,6 +203,7 @@ export function FieldCallRecord({ language = "en", record }) {
       <div className="fcx-card-heading compact">
         <div>
           <span className="fcx-eyebrow">FIELD PROOF</span>
+          <h3>{c.recordTitle}</h3>
           <p>{c.recordHelp}</p>
         </div>
       </div>
@@ -284,7 +299,7 @@ export function ContractorDecisionPanel({
     <section className="fcx-card fcx-decision">
       <div className="fcx-card-heading compact">
         <div>
-          <span className="fcx-eyebrow">YOU OWN THE DECISION</span>
+          <span className="fcx-eyebrow">JUDGMENT STAYS FINAL</span>
           <h3>{c.finalTitle}</h3>
           <p>{c.finalHelp}</p>
         </div>
@@ -310,7 +325,6 @@ export function ContractorDecisionPanel({
 
       <label className="fcx-text-field">
         <span>{c.localContext}</span>
-        <small className="fcx-field-help">{c.localHelp}</small>
         <textarea
           value={localContext}
           onChange={(event) => { setLocalContext(event.target.value); setSaved(false); }}
@@ -319,7 +333,7 @@ export function ContractorDecisionPanel({
       </label>
 
       <button type="button" className="fcx-primary" onClick={handleSave} disabled={!decision || saving}>
-        {saving ? "…" : saved ? `✓ ${c.saved}` : decision ? `${c.saveCall}: ${decision === "NO GO" ? c.noGo : decision === "DELAY" ? c.delay : c.go}` : c.saveCall}
+        {saving ? "…" : saved ? `✓ ${c.saved}` : c.saveCall}
       </button>
     </section>
   );
@@ -327,54 +341,37 @@ export function ContractorDecisionPanel({
 
 export function SignalTimeline({ language = "en", events = [] }) {
   const c = useCopy(language);
-  const [expanded, setExpanded] = useState(false);
   const displayEvents = events.slice(-5).reverse();
 
-  function definingReason(event, olderEvent) {
-    if (olderEvent && event.signal && olderEvent.signal && event.signal !== olderEvent.signal) {
-      return `${c.recommendationChanged}: ${olderEvent.signal} → ${event.signal}`;
-    }
-    if (olderEvent && event.window_label && olderEvent.window_label && event.window_label !== olderEvent.window_label) {
-      return `${c.windowChanged}: ${olderEvent.window_label} → ${event.window_label}`;
-    }
-    const reason = String(event.reason || "").trim();
-    if (reason) return reason;
-    return olderEvent ? c.noMaterialChange : c.refreshCompleted;
-  }
-
   return (
-    <section className="fcx-card fcx-timeline is-collapsible">
-      <button type="button" className="fcx-collapse-head" onClick={() => setExpanded((value) => !value)} aria-expanded={expanded}>
+    <section className="fcx-card fcx-timeline">
+      <div className="fcx-card-heading compact">
         <div>
           <span className="fcx-eyebrow">MONITORING HISTORY</span>
-          <h3>{c.timelineTitle} <small>({events.length})</small></h3>
+          <h3>{c.timelineTitle}</h3>
           <p>{c.timelineHelp}</p>
         </div>
-        <span className="fcx-collapse-icon">{expanded ? "−" : "+"}</span>
-      </button>
+      </div>
 
-      {expanded && (displayEvents.length === 0 ? (
+      {displayEvents.length === 0 ? (
         <p className="fcx-empty">{c.noTimeline}</p>
       ) : (
         <div className="fcx-event-list">
-          {displayEvents.map((event, index) => {
-            const olderEvent = displayEvents[index + 1];
-            return (
-              <div className="fcx-event" key={event.id}>
-                <div className="fcx-event-line"><span /></div>
-                <div className="fcx-event-body">
-                  <div className="fcx-event-top">
-                    <SignalPill signal={event.signal} />
-                    <time>{new Date(event.checked_at).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</time>
-                  </div>
-                  <strong>{definingReason(event, olderEvent)}</strong>
-                  {event.window_label && <small>{event.window_label}</small>}
+          {displayEvents.map((event, index) => (
+            <div className="fcx-event" key={event.id}>
+              <div className="fcx-event-line"><span /></div>
+              <div className="fcx-event-body">
+                <div className="fcx-event-top">
+                  <SignalPill signal={event.signal} />
+                  <time>{new Date(event.checked_at).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</time>
                 </div>
+                <strong>{event.window_label || event.reason || "Assessment updated"}</strong>
+                {index === 0 && events.length > 1 && <small>Latest monitoring point</small>}
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
-      ))}
+      )}
     </section>
   );
 }
