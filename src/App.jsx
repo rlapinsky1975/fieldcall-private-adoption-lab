@@ -274,7 +274,6 @@ const [form, setForm] = useState({
   const [selectedMessageAudience, setSelectedMessageAudience] = useState("client");
   const [messageDraft, setMessageDraft] = useState("");
   const [showWeatherDetails, setShowWeatherDetails] = useState(false);
-  const [showProjectDetails, setShowProjectDetails] = useState(false);
   const [resultJobContext, setResultJobContext] = useState(null);
   const [installPromptEvent, setInstallPromptEvent] = useState(null);
 const [showInstallHelp, setShowInstallHelp] = useState(false);
@@ -300,7 +299,7 @@ const adoption = useAdoptionExperience({
 
 useEffect(() => {
   if (screen === "result") {
-    setShowProjectDetails(false);
+    setShowWeatherDetails(false);
   }
 }, [screen, result?.checkedAt, resultJobContext?.id]);
 
@@ -5284,7 +5283,9 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
       {t("communicationHelp")}
     </p>
 
-    {copyNotice && <div style={copyNoticeStyle}>{copyNotice}</div>}
+    {copyNotice && /copied|copiado/i.test(copyNotice) && (
+      <div style={copyNoticeStyle}>{copyNotice}</div>
+    )}
 
     <div style={copyGridStyle}>
       <button
@@ -5313,7 +5314,7 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
 
               <div style={whyCardStyle}>
                 <p style={whyTitleStyle}>{t("whyRecommendation")}</p>
-                {getShortWhyPoints(result, form, language).map((point, index) => (
+                {getShortWhyPoints(result, form, language).slice(0, 3).map((point, index) => (
                   <p key={index} style={whyPointStyle}>
                     • {point}
                   </p>
@@ -5335,140 +5336,11 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
                 )}
               </div>
 
-              {!guestMode && currentResultJobId && (
-                <SignalTimeline
-                  language={language}
-                  events={currentJobExperience.signalEvents}
-                />
-              )}
-
-              <div style={weatherDetailsCardStyle}>
-                <button
-                  onClick={() => setShowWeatherDetails(!showWeatherDetails)}
-                  style={weatherDetailsToggleStyle}
-                >
-                  <span>{t("assessmentDetails")}</span>
-                  <span>{showWeatherDetails ? "−" : "+"}</span>
-                </button>
-
-                {showWeatherDetails && (
-                  <div style={weatherDetailsContentStyle}>
-                    <p style={resultLineStyle}>
-                      <strong>{t("finalCallTimeDetail")}:</strong>{" "}
-                      {formatFinalCallTimeLabel(
-                        result.finalCallTime || form.finalCallTime,
-                        language
-                      )}{" "}
-                      {form.operatingWindow === "Night"
-                        ? t("onWorkDate")
-                        : t("dayBeforeWork")}
-                    </p>
-
-                    <p style={resultLineStyle}>
-                      <strong>{t("forecastAgreement")}:</strong>{" "}
-                      {translateForecastAgreement(result.forecastAgreementLabel, language)}
-                    </p>
-
-                    <p style={resultLineStyle}>
-                      <strong>{t("weatherCheck")}:</strong> {translateCallTypeDisplay(result.callTypeDisplay, language)}
-                    </p>
-
-                    <p style={resultLineStyle}>
-                      <strong>{t("sources")}:</strong> {result.sources}
-                    </p>
-
-                    <p style={resultLineStyle}>
-                      <strong>{t("highestRainSignal")}:</strong>{" "}
-                      {result.nwsPeakRainProbabilityDisplay !== "Unavailable"
-                        ? formatNwsPeakRainSignal(result, language)
-                        : t("openMeteoShows", { value: `${result.peakRainProbability}%` })}
-                    </p>
-                    <p style={resultLineStyle}>
-                      <strong>{t("workableWindowRequirements")}:</strong>{" "}
-                      {formatWorkWindowRequirements(result, language)}
-                    </p>
-
-                    {result.workWindowReason && (
-                      <p style={resultLineStyle}>
-                        <strong>{t("whyThisWindow")}:</strong>{" "}
-                        {result.workWindowReason}
-                      </p>
-                    )}
-
-                    {result.hasReliableWindow && result.laterDayRiskLabel && (
-                      <p style={resultLineStyle}>
-                        <strong>{t("laterDayRisk")}:</strong>{" "}
-                        {formatLaterDayRisk(result, language)}
-                      </p>
-                    )}
-
-                    {Array.isArray(result.alternativeWorkWindows) &&
-                      result.alternativeWorkWindows.length > 1 && (
-                        <p style={resultLineStyle}>
-                          <strong>{t("otherQualifyingWindows")}:</strong>{" "}
-                          {result.alternativeWorkWindows
-                            .slice(1)
-                            .map((windowOption) => windowOption?.label)
-                            .filter(Boolean)
-                            .join(", ")}
-                        </p>
-                      )}
-<p style={resultLineStyle}>
-  <strong>
-    {result.hasReliableWindow
-      ? t("selectedWindowTemp")
-      : t("assessedPeriodTemp")}:
-  </strong>{" "}
-  {result.workWindowTempRange || "Unavailable"}
-</p>
-                    <p style={resultLineStyle}>
-                      <strong>{t("rainfallAssessedPeriod")}:</strong>{" "}
-                      {formatRainfallAssessmentDisplay(result)}
-                    </p>
-
-                    {result.hasReliableWindow &&
-                      result.rainfallSelectedWindow !== null &&
-                      result.rainfallSelectedWindow !== undefined && (
-                        <p style={resultLineStyle}>
-                          <strong>{t("rainfallSelectedWindow")}:</strong>{" "}
-                          {formatInchesForDisplay(
-                            result.rainfallSelectedWindow
-                          ) || "Unavailable"}
-                        </p>
-                      )}
-
-                    
-                  </div>
-                )}
-              </div>
-
-<div style={projectDetailsCardStyle}>
-  <button
-    type="button"
-    onClick={() => setShowProjectDetails(!showProjectDetails)}
-    style={projectDetailsToggleStyle}
-    aria-expanded={showProjectDetails}
-  >
-    <span>{t("projectDetails")}</span>
-    <span>{showProjectDetails ? "−" : "+"}</span>
-  </button>
-
-  {showProjectDetails && (
-    <div style={projectDetailsContentStyle}>
-      <p style={projectDetailsPrimaryStyle}>
-        {form.projectName || t("notEntered")} · {form.city}, {form.state}
-      </p>
-
-      <p style={projectDetailsSecondaryStyle}>
-        {formatDateLabel(form.workDate, language)} · {getLocalizedOptionLabel(form.workType, language)}
-      </p>
-    </div>
-  )}
-</div>
-
 {currentResultJobHasFinalResult && currentResultJob && (
-  <div style={callFeedbackCardStyle}>
-    <p style={projectDetailsTitleStyle}>{t("callFeedback")}</p>
+  <div style={callFeedbackInlineStyle}>
+    <p style={callFeedbackPromptStyle}>
+      {language === "es" ? "¿Fue una buena decisión de FieldCall?" : "Was this a good FieldCall?"}
+    </p>
 
     {currentResultJobFeedbackRating ? (
       <p
@@ -5477,7 +5349,9 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
           color: currentResultJobFeedbackRating === "up" ? "#166534" : "#991b1b",
         }}
       >
-        {t("rated")} {currentResultJobFeedbackRating === "up" ? `👍 ${t("goodCallText")}` : `👎 ${t("badCallText")}`}
+        {currentResultJobFeedbackRating === "up"
+          ? `👍 ${t("goodCallText")}`
+          : `👎 ${t("badCallText")}`}
       </p>
     ) : (
       <div style={rateCallButtonGridStyle}>
@@ -5499,6 +5373,13 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
   </div>
 )}
 
+{!guestMode && currentResultJobId && (
+  <SignalTimeline
+    language={language}
+    events={currentJobExperience.signalEvents}
+  />
+)}
+
 {!guestMode &&
   currentResultJob &&
   currentResultJob.shadowModeEnabled === true &&
@@ -5516,15 +5397,124 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
     />
 )}
 
-{!guestMode && (
+<div style={weatherDetailsCardStyle}>
   <button
     type="button"
-    onClick={() => setScreen("trustCenter")}
-    style={secondaryButtonStyle}
+    onClick={() => setShowWeatherDetails(!showWeatherDetails)}
+    style={weatherDetailsToggleStyle}
+    aria-expanded={showWeatherDetails}
   >
-    {language === "es" ? "Cómo se construye esta decisión" : "How this call is built"}
+    <span>{language === "es" ? "DETALLES" : "DETAILS"}</span>
+    <span>{showWeatherDetails ? "−" : "+"}</span>
   </button>
-)}
+
+  {showWeatherDetails && (
+    <div style={weatherDetailsContentStyle}>
+      <p style={detailsSectionLabelStyle}>
+        {language === "es" ? "EVALUACIÓN" : "ASSESSMENT"}
+      </p>
+
+      <p style={resultLineStyle}>
+        <strong>{t("finalCallTimeDetail")}:</strong>{" "}
+        {formatFinalCallTimeLabel(
+          result.finalCallTime || form.finalCallTime,
+          language
+        )}{" "}
+        {form.operatingWindow === "Night"
+          ? t("onWorkDate")
+          : t("dayBeforeWork")}
+      </p>
+
+      <p style={resultLineStyle}>
+        <strong>{t("forecastAgreement")}:</strong>{" "}
+        {translateForecastAgreement(result.forecastAgreementLabel, language)}
+      </p>
+
+      <p style={resultLineStyle}>
+        <strong>{t("weatherCheck")}:</strong>{" "}
+        {translateCallTypeDisplay(result.callTypeDisplay, language)}
+      </p>
+
+      <p style={resultLineStyle}>
+        <strong>{t("sources")}:</strong> {result.sources}
+      </p>
+
+      <p style={resultLineStyle}>
+        <strong>{t("highestRainSignal")}:</strong>{" "}
+        {result.nwsPeakRainProbabilityDisplay !== "Unavailable"
+          ? formatNwsPeakRainSignal(result, language)
+          : t("openMeteoShows", { value: `${result.peakRainProbability}%` })}
+      </p>
+
+      <p style={resultLineStyle}>
+        <strong>{t("workableWindowRequirements")}:</strong>{" "}
+        {formatWorkWindowRequirements(result, language)}
+      </p>
+
+      {result.workWindowReason && (
+        <p style={resultLineStyle}>
+          <strong>{t("whyThisWindow")}:</strong>{" "}
+          {result.workWindowReason}
+        </p>
+      )}
+
+      {result.hasReliableWindow && result.laterDayRiskLabel && (
+        <p style={resultLineStyle}>
+          <strong>{t("laterDayRisk")}:</strong>{" "}
+          {formatLaterDayRisk(result, language)}
+        </p>
+      )}
+
+      {Array.isArray(result.alternativeWorkWindows) &&
+        result.alternativeWorkWindows.length > 1 && (
+          <p style={resultLineStyle}>
+            <strong>{t("otherQualifyingWindows")}:</strong>{" "}
+            {result.alternativeWorkWindows
+              .slice(1)
+              .map((windowOption) => windowOption?.label)
+              .filter(Boolean)
+              .join(", ")}
+          </p>
+        )}
+
+      <p style={resultLineStyle}>
+        <strong>
+          {result.hasReliableWindow
+            ? t("selectedWindowTemp")
+            : t("assessedPeriodTemp")}:
+        </strong>{" "}
+        {result.workWindowTempRange || "Unavailable"}
+      </p>
+
+      <p style={resultLineStyle}>
+        <strong>{t("rainfallAssessedPeriod")}:</strong>{" "}
+        {formatRainfallAssessmentDisplay(result)}
+      </p>
+
+      {result.hasReliableWindow &&
+        result.rainfallSelectedWindow !== null &&
+        result.rainfallSelectedWindow !== undefined && (
+          <p style={resultLineStyle}>
+            <strong>{t("rainfallSelectedWindow")}:</strong>{" "}
+            {formatInchesForDisplay(result.rainfallSelectedWindow) || "Unavailable"}
+          </p>
+        )}
+
+      <div style={detailsSectionDividerStyle} />
+
+      <p style={detailsSectionLabelStyle}>
+        {language === "es" ? "PROYECTO" : "PROJECT"}
+      </p>
+      <p style={projectDetailsPrimaryStyle}>
+        {form.projectName || t("notEntered")} · {form.city}, {form.state}
+      </p>
+      <p style={projectDetailsSecondaryStyle}>
+        {formatDateLabel(form.workDate, language)} ·{" "}
+        {getLocalizedOptionLabel(form.workType, language)}
+      </p>
+    </div>
+  )}
+</div>
 
 {currentResultJob && (
   <div style={projectActionsCardStyle}>
@@ -11256,16 +11246,17 @@ const rateCallLabelStyle = {
 const rateCallButtonGridStyle = {
   display: "grid",
   gridTemplateColumns: "1fr 1fr",
-  gap: "6px",
+  gap: "5px",
+  minWidth: "150px",
 };
 
 const feedbackButtonStyle = {
   border: "1px solid #cbd5e1",
   background: "#ffffff",
   color: "#0f172a",
-  borderRadius: "13px",
-  padding: "10px 4px",
-  fontSize: "11px",
+  borderRadius: "11px",
+  padding: "7px 5px",
+  fontSize: "10px",
   fontWeight: 900,
   cursor: "pointer",
 };
@@ -11431,19 +11422,19 @@ const copyToNewDateButtonStyle = {
   background: "#ffffff",
   color: "#071528",
   borderRadius: "12px",
-  padding: "9px 4px",
+  padding: "8px 10px",
   fontSize: "11px",
   fontWeight: 900,
   cursor: "pointer",
 };
 
 const quietDeleteJobButtonStyle = {
-  border: "1px solid #e2e8f0",
-  background: "#ffffff",
+  border: "none",
+  background: "transparent",
   color: "#7b8794",
-  borderRadius: "12px",
-  padding: "9px 4px",
-  fontSize: "11px",
+  borderRadius: "10px",
+  padding: "8px 6px",
+  fontSize: "10px",
   fontWeight: 800,
   cursor: "pointer",
 };
@@ -12635,17 +12626,53 @@ const projectActionsCardStyle = {
   background: "#ffffff",
   border: "1px solid #e2e8f0",
   borderRadius: "14px",
-  padding: "9px 11px",
+  padding: "8px 10px",
 };
 
 const callFeedbackCardStyle = {
   ...projectActionsCardStyle,
 };
 
+const callFeedbackInlineStyle = {
+  marginTop: "9px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "10px",
+  padding: "8px 10px",
+  background: "#ffffff",
+  border: "1px solid #e2e8f0",
+  borderRadius: "14px",
+};
+
+const callFeedbackPromptStyle = {
+  margin: 0,
+  color: "#071528",
+  fontSize: "11px",
+  lineHeight: "15px",
+  fontWeight: 900,
+};
+
+const detailsSectionLabelStyle = {
+  margin: "0 0 6px",
+  color: "#9a6b00",
+  fontSize: "10px",
+  lineHeight: "12px",
+  fontWeight: 900,
+  letterSpacing: "0.08em",
+};
+
+const detailsSectionDividerStyle = {
+  height: "1px",
+  background: "#e2e8f0",
+  margin: "10px 0",
+};
+
 const projectActionGridStyle = {
   display: "grid",
-  gridTemplateColumns: "1fr 1fr",
+  gridTemplateColumns: "1fr auto",
   gap: "8px",
+  alignItems: "center",
 };
 
 
@@ -12857,7 +12884,7 @@ const copyGridStyle = {
 const copyButtonStyle = {
   width: "100%",
   minWidth: 0,
-  padding: "8px 4px",
+  padding: "7px 4px",
   borderRadius: "12px",
   border: "1px solid #d6b44c",
   background: "#ffffff",
