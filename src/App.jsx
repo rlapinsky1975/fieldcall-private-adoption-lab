@@ -19,6 +19,8 @@ import { useAdoptionExperience } from "./adoption/useAdoptionExperience.js";
 
 const FIELDCALL_SITE_URL = "https://myfieldcall.com";
 const FIELDCALL_SUPPORT_EMAIL = "fieldcallsupport@gmail.com";
+const FIELDCALL_STANDARD_WEATHER_CAUTION = "balanced";
+const FIELDCALL_STANDARD_RAIN_THRESHOLD = 30;
 const PASSWORD_RESET_REDIRECT_URL = `${window.location.origin}/?mode=reset-password`;
 
 function isFieldCallInstalled() {
@@ -3866,6 +3868,14 @@ const showFallbackActions =
   const selectedWeatherCautionIndex = getWeatherCallCautionIndex(
     companySettings.weatherCallCaution
   );
+  const weatherCallCautionIsFieldCallStandard =
+    normalizeWeatherCallCaution(companySettings.weatherCallCaution) ===
+    FIELDCALL_STANDARD_WEATHER_CAUTION;
+  const selectedWorkableRainThreshold = normalizeWorkableRainThreshold(
+    companySettings.workableRainProbabilityThreshold
+  );
+  const workableRainThresholdIsFieldCallStandard =
+    selectedWorkableRainThreshold === FIELDCALL_STANDARD_RAIN_THRESHOLD;
   const selectedDefaultFinalCallTimeIndex = getFinalCallTimeIndex(
     companySettings.defaultFinalCallTime
   );
@@ -4891,7 +4901,11 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
                   <div style={settingsAccordionListStyle}>
                     <SettingsAccordionRow
                       title={t("weatherCallCaution")}
-                      summary={`${t(selectedWeatherCautionOption.labelKey)} · ${t("fieldCallStandard")}`}
+                      summary={`${t(selectedWeatherCautionOption.labelKey)} · ${t(
+                        weatherCallCautionIsFieldCallStandard
+                          ? "fieldCallStandard"
+                          : "companySetting"
+                      )}`}
                       open={openCompanySetting === "caution"}
                       onToggle={() => setOpenCompanySetting(openCompanySetting === "caution" ? "" : "caution")}
                     >
@@ -4920,7 +4934,11 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
 
                     <SettingsAccordionRow
                       title={t("workableRainThreshold")}
-                      summary={`${normalizeWorkableRainThreshold(companySettings.workableRainProbabilityThreshold)}% · ${t("fieldCallStandard")}`}
+                      summary={`${selectedWorkableRainThreshold}% · ${t(
+                        workableRainThresholdIsFieldCallStandard
+                          ? "fieldCallStandard"
+                          : "companySetting"
+                      )}`}
                       open={openCompanySetting === "rain"}
                       onToggle={() => setOpenCompanySetting(openCompanySetting === "rain" ? "" : "rain")}
                     >
@@ -4930,7 +4948,7 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
                         min="0"
                         max="100"
                         step="1"
-                        value={normalizeWorkableRainThreshold(companySettings.workableRainProbabilityThreshold)}
+                        value={selectedWorkableRainThreshold}
                         onChange={(event) => setCompanySettings((currentSettings) => ({
                           ...currentSettings,
                           workableRainProbabilityThreshold: normalizeWorkableRainThreshold(event.target.value),
@@ -4939,8 +4957,15 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
                         disabled={companySettingsLoading || companySettingsSaving}
                       />
                       <div style={compactSelectedValueStyle}>
-                        <strong>{normalizeWorkableRainThreshold(companySettings.workableRainProbabilityThreshold)}%</strong>
-                        <span>{t("workableRainThresholdSelectedHelp")}</span>
+                        <strong>{selectedWorkableRainThreshold}%</strong>
+                        <span>
+                          {workableRainThresholdIsFieldCallStandard
+                            ? t("workableRainThresholdSelectedHelp")
+                            : `${t("workableRainThresholdSelectedHelp")} ${t(
+                                "fieldCallStandardRainThresholdValue",
+                                { value: FIELDCALL_STANDARD_RAIN_THRESHOLD }
+                              )}`}
+                        </span>
                       </div>
                       <details style={settingsDetailsStyle}>
                         <summary>{t("howThisWorks")}</summary>
@@ -5918,6 +5943,7 @@ createCompanyHelper: "Create your company in about 60 seconds. No credit card re
     companySettingsIntro: "Set how your company wants FieldCall to handle weather calls.",
     companySettingsDashboardHelp: "Company weather-call defaults",
     fieldCallStandard: "FieldCall standard",
+    companySetting: "Company setting",
     weatherCallCautionHelpCompact: "Move left for earlier NO GO calls. Move right to accept more weather risk.",
     workableRainThresholdHelpCompact: "Hours at or below this threshold may qualify for the workable window.",
     defaultFinalCallTimeHelpCompact: "The starting final-call time for new jobs. Individual jobs can override it.",
@@ -5946,6 +5972,7 @@ createCompanyHelper: "Create your company in about 60 seconds. No credit card re
     workableRainThresholdHelp: "An hour above this company threshold will not appear inside a workable window. The highest probability from approved sources is used.",
     workableRainThresholdSelectedHelp: "Hours at or below this threshold can qualify.",
     fieldCallStandardRainThreshold: "FieldCall standard",
+    fieldCallStandardRainThresholdValue: "FieldCall standard: {value}%.",
     minimumWorkableWindowFinePrint: "A workable window requires at least 2 continuous hours. Rainfall amount, thunder wording, and lightning do not independently remove an hour.",
     workableWindowRequirements: "Workable Window Requirements",
     whyThisWindow: "Why this window",
@@ -6246,6 +6273,7 @@ createCompanyHelper: "Cree su empresa en aproximadamente 60 segundos. No se requ
     companySettingsIntro: "Configure cómo su empresa quiere que FieldCall maneje las decisiones del clima.",
     companySettingsDashboardHelp: "Valores del clima de la empresa",
     fieldCallStandard: "Estándar de FieldCall",
+    companySetting: "Configuración de la empresa",
     weatherCallCautionHelpCompact: "Mueva a la izquierda para NO GO antes. Mueva a la derecha para aceptar más riesgo.",
     workableRainThresholdHelpCompact: "Las horas iguales o inferiores a este umbral pueden calificar.",
     defaultFinalCallTimeHelpCompact: "Hora inicial para trabajos nuevos. Cada trabajo puede cambiarla.",
@@ -6274,6 +6302,7 @@ createCompanyHelper: "Cree su empresa en aproximadamente 60 segundos. No se requ
     workableRainThresholdHelp: "Una hora por encima de este umbral de la empresa no aparecerá dentro de una ventana trabajable. Se usa la probabilidad más alta de las fuentes aprobadas.",
     workableRainThresholdSelectedHelp: "Las horas iguales o inferiores a este umbral pueden calificar.",
     fieldCallStandardRainThreshold: "Estándar de FieldCall",
+    fieldCallStandardRainThresholdValue: "Estándar de FieldCall: {value}%.",
     minimumWorkableWindowFinePrint: "Una ventana trabajable requiere al menos 2 horas continuas. La cantidad de lluvia, el texto de tormenta y los rayos no eliminan una hora por sí solos.",
     workableWindowRequirements: "Requisitos de la ventana trabajable",
     whyThisWindow: "Por qué esta ventana",
@@ -6503,14 +6532,14 @@ function normalizeWeatherCallCaution(value) {
     (option) => option.value === value
   );
 
-  return matchingOption?.value || "balanced";
+  return matchingOption?.value || FIELDCALL_STANDARD_WEATHER_CAUTION;
 }
 
 function normalizeWorkableRainThreshold(value) {
   const parsed = Number(value);
   return Number.isFinite(parsed)
     ? Math.min(100, Math.max(0, parsed))
-    : 30;
+    : FIELDCALL_STANDARD_RAIN_THRESHOLD;
 }
 
 function normalizeMinimumWorkableWindowHours(value) {
