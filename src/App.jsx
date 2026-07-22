@@ -3414,6 +3414,7 @@ const currentResultJobHasFinalResult = currentResultJob
   ? isSavedJobFinalResult(currentResultJob)
   : result?.isFinal === true;
 const currentResultJobFeedbackRating = currentResultJob?.feedbackRating || "";
+const currentResultSetupSnapshot = getAssessmentSetupSnapshot(result);
 
 const callsMadeJobs = savedJobs
   .filter((job) => {
@@ -5561,6 +5562,30 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
           </p>
         )}
 
+      {currentResultSetupSnapshot && (
+        <>
+          <div style={detailsSectionDividerStyle} />
+
+          <p style={detailsSectionLabelStyle}>
+            {language === "es" && currentResultSetupSnapshot.serviceType === "Paving"
+              ? "CONFIGURACIÓN DE PAVIMENTACIÓN"
+              : currentResultSetupSnapshot.sectionLabel}
+          </p>
+
+          <p style={resultLineStyle}>
+            <strong>
+              {language === "es" && currentResultSetupSnapshot.serviceType === "Paving"
+                ? "Condición del sitio"
+                : currentResultSetupSnapshot.fieldLabel}:
+            </strong>{" "}
+            {getLocalizedOptionLabel(
+              currentResultSetupSnapshot.selectedValue,
+              language
+            )}
+          </p>
+        </>
+      )}
+
       <div style={detailsSectionDividerStyle} />
 
       <p style={detailsSectionLabelStyle}>
@@ -7026,6 +7051,7 @@ function normalizeSurfaceConditionForStorage(surfaceCondition) {
 function getSurfaceConditionFromBackendRow(row) {
   const storedCondition = String(row?.surface_condition || "").toLowerCase();
 
+  if (storedCondition === "overlay") return "Overlay";
   if (storedCondition === "milled_surface") return "Milled";
   if (storedCondition === "subgrade_same_day") return DEFAULT_PAVING_SETUP;
   if (storedCondition === "exposed_subgrade" || storedCondition === "exposed_base") {
@@ -7033,6 +7059,65 @@ function getSurfaceConditionFromBackendRow(row) {
   }
 
   return getSurfaceConditionFromBaseExposed(row?.base_exposed ? "Yes" : "No");
+}
+
+function buildAssessmentSetupSnapshot(form = {}) {
+  const serviceType = String(form?.workType || "").trim();
+  const selectedValue = String(form?.surfaceCondition || "").trim();
+
+  if (
+    !isPavingService(serviceType) ||
+    !SURFACE_CONDITION_OPTIONS.includes(selectedValue)
+  ) {
+    return null;
+  }
+
+  return {
+    serviceType: "Paving",
+    sectionLabel: "PAVING SETUP",
+    fieldLabel: "Site condition",
+    selectedValue,
+  };
+}
+
+function getAssessmentSetupSnapshot(source = {}) {
+  const storedSnapshot = source?.setupSnapshot || source?.setup_snapshot;
+
+  if (
+    storedSnapshot &&
+    typeof storedSnapshot === "object" &&
+    String(storedSnapshot.selectedValue || "").trim()
+  ) {
+    return {
+      serviceType: String(storedSnapshot.serviceType || "").trim(),
+      sectionLabel: String(storedSnapshot.sectionLabel || "SETUP").trim(),
+      fieldLabel: String(storedSnapshot.fieldLabel || "Selection").trim(),
+      selectedValue: String(storedSnapshot.selectedValue).trim(),
+    };
+  }
+
+  // Older manual and preliminary results already stored the raw form choice
+  // directly on the result. That is safe to preserve as an exact snapshot.
+  // Do not use this fallback for older scheduler results: the former worker
+  // could decode Overlay incorrectly, so hiding is safer than fabricating.
+  const serviceType = String(source?.workType || "").trim();
+  const selectedValue = String(source?.surfaceCondition || "").trim();
+  const finalCallSource = String(source?.finalCallSource || "").toLowerCase();
+
+  if (
+    finalCallSource !== "scheduler" &&
+    isPavingService(serviceType) &&
+    SURFACE_CONDITION_OPTIONS.includes(selectedValue)
+  ) {
+    return {
+      serviceType: "Paving",
+      sectionLabel: "PAVING SETUP",
+      fieldLabel: "Site condition",
+      selectedValue,
+    };
+  }
+
+  return null;
 }
 
 function getBackendSurfaceCondition(form) {
@@ -7227,6 +7312,7 @@ callTypeDisplay: result.callTypeDisplay,
     combinedSourceProfile: result.combinedSourceProfile,
 
     surfaceCondition: result.surfaceCondition,
+    setupSnapshot: getAssessmentSetupSnapshot(result),
     baseExposed: result.baseExposed,
     workType: result.workType,
     operatingWindow: result.operatingWindow || "Day",
@@ -8496,6 +8582,7 @@ scoreText: backendScoreText,
     combinedSourceProfile: backendInput,
 
     surfaceCondition: isPavingService(form.workType) ? form.surfaceCondition || "Subgrade exposed & paved same day" : "Subgrade exposed & paved same day",
+    setupSnapshot: buildAssessmentSetupSnapshot(form),
     baseExposed: isPavingService(form.workType)
       ? getBaseExposedFromSurfaceCondition(form.surfaceCondition)
       : "No",
@@ -8515,6 +8602,14 @@ async function saveAssessmentToBackend({
     throw new Error("Assessment history save failed: Supabase is not configured.");
   }
 
+  const setupSnapshot = buildAssessmentSetupSnapshot(form);
+  const assessmentInputData = setupSnapshot
+    ? { ...backendInput, setup_snapshot: setupSnapshot }
+    : backendInput;
+  const assessmentScoringResult = setupSnapshot
+    ? { ...scoringResult, setup_snapshot: setupSnapshot }
+    : scoringResult;
+
   const { data: savedAssessment, error } = await supabase
   .from("assessments")
   .insert({
@@ -8530,8 +8625,8 @@ async function saveAssessmentToBackend({
 
     is_final_call_window: timing.isFinal,
 
-    input_data: backendInput,
-    scoring_result: scoringResult,
+    input_data: assessmentInputData,
+    scoring_result: assessmentScoringResult,
 
     signal: scoringResult?.display_signal ?? scoringResult?.signal ?? null,
 total_score: scoringResult?.total_score ?? null,
