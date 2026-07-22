@@ -18,7 +18,6 @@ const COPY = {
     confirm: "Confirm current standard",
     enable: "Enable alerts",
     monitoring: "FieldCall is monitoring your first job.",
-    recordTitle: "Your FieldCall Record",
     recordHelp: "Proof from your own operation—not a generic accuracy claim.",
     monitored: "Jobs monitored",
     changed: "Calls that changed",
@@ -81,7 +80,6 @@ const COPY = {
     confirm: "Confirmar estándar actual",
     enable: "Activar alertas",
     monitoring: "FieldCall está monitoreando su primer trabajo.",
-    recordTitle: "Su historial de FieldCall",
     recordHelp: "Prueba de su propia operación, no una promesa genérica de precisión.",
     monitored: "Trabajos monitoreados",
     changed: "Decisiones que cambiaron",
@@ -213,8 +211,7 @@ export function FieldCallRecord({ language = "en", record }) {
       <div className="fcx-card-heading compact">
         <div>
           <span className="fcx-eyebrow">FIELD PROOF</span>
-          <h3>{c.recordTitle}</h3>
-          <p>{c.recordHelp}</p>
+<p>{c.recordHelp}</p>
         </div>
       </div>
       <div className="fcx-stat-grid">
