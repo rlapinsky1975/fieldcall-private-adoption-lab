@@ -54,7 +54,7 @@ const COPY = {
     monitoringPoints: "monitoring points",
     latestPoint: "Latest monitoring point",
     noTimeline: "The first monitoring point will appear after this job is saved and checked.",
-    outcomeTitle: "What happened on this job?",
+    outcomeTitle: "Did the work proceed, and how did weather affect it?",
     outcomeHelp: "Two quick answers help build proof and improve the framework.",
     worked: "Worked",
     delayed: "Delayed",
@@ -120,7 +120,7 @@ const COPY = {
     monitoringPoints: "puntos de monitoreo",
     latestPoint: "Punto de monitoreo más reciente",
     noTimeline: "El primer punto aparecerá después de guardar y revisar este trabajo.",
-    outcomeTitle: "¿Qué ocurrió en este trabajo?",
+    outcomeTitle: "¿Se realizó el trabajo y cómo lo afectó el clima?",
     outcomeHelp: "Dos respuestas rápidas ayudan a crear evidencia y mejorar el marco.",
     worked: "Se trabajó",
     delayed: "Demorado",
@@ -430,7 +430,6 @@ export function SignalTimeline({ language = "en", events = [] }) {
         aria-expanded={expanded}
       >
         <div className="fcx-timeline-title-row">
-          <span className="fcx-eyebrow">MONITORING</span>
           <h3>{c.timelineTitle}</h3>
         </div>
         <div className="fcx-timeline-toggle-meta">
@@ -495,7 +494,7 @@ export function OutcomeCapture({ language = "en", jobId, existingOutcome, onSave
         <div className="fcx-outcome-recorded-row">
           <div>
             <span className="fcx-eyebrow">
-              {language === "es" ? "RESULTADO REGISTRADO" : "OUTCOME RECORDED"}
+              {language === "es" ? "RESULTADO DEL TRABAJO" : "JOB OUTCOME"}
             </span>
             <strong>✓ {existingOutcome.actual_decision}</strong>
           </div>
@@ -545,7 +544,7 @@ export function OutcomeCapture({ language = "en", jobId, existingOutcome, onSave
       >
         <div>
           <span className="fcx-eyebrow">
-            {language === "es" ? "RESULTADO PENDIENTE" : "OUTCOME NEEDED"}
+            {language === "es" ? "CONFIRMAR RESULTADO DEL TRABAJO" : "CONFIRM JOB OUTCOME"}
           </span>
           <h3>{c.outcomeTitle}</h3>
         </div>

@@ -5395,7 +5395,9 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
                 )}
               </div>
 
-{currentResultJobHasFinalResult && currentResultJob && (
+{currentResultJobHasFinalResult &&
+  currentResultJob &&
+  currentResultJob.shadowModeEnabled !== true && (
   <div style={callFeedbackInlineStyle}>
     <p style={callFeedbackPromptStyle}>
       {language === "es" ? "¿Fue una buena decisión de FieldCall?" : "Was this a good FieldCall?"}
