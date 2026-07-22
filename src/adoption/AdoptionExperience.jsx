@@ -18,6 +18,7 @@ const COPY = {
     confirm: "Confirm current standard",
     enable: "Enable alerts",
     monitoring: "FieldCall is monitoring your first job.",
+    recordTitle: "Your FieldCall Record",
     recordHelp: "Proof from your own operation—not a generic accuracy claim.",
     monitored: "Jobs monitored",
     changed: "Calls that changed",
@@ -80,6 +81,7 @@ const COPY = {
     confirm: "Confirmar estándar actual",
     enable: "Activar alertas",
     monitoring: "FieldCall está monitoreando su primer trabajo.",
+    recordTitle: "Su historial de FieldCall",
     recordHelp: "Prueba de su propia operación, no una promesa genérica de precisión.",
     monitored: "Trabajos monitoreados",
     changed: "Decisiones que cambiaron",
@@ -165,8 +167,16 @@ export function ActivationChecklist({
 }) {
   const c = useCopy(language);
   if (!activation || activation.complete) {
-  return null;
-}
+    return (
+      <div className="fcx-activation-complete">
+        <span>✓</span>
+        <div>
+          <strong>{c.monitoring}</strong>
+          <p>{c.setupHelp}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <section className="fcx-card fcx-activation">
@@ -211,7 +221,8 @@ export function FieldCallRecord({ language = "en", record }) {
       <div className="fcx-card-heading compact">
         <div>
           <span className="fcx-eyebrow">FIELD PROOF</span>
-<p>{c.recordHelp}</p>
+          <h3>{c.recordTitle}</h3>
+          <p>{c.recordHelp}</p>
         </div>
       </div>
       <div className="fcx-stat-grid">
@@ -442,16 +453,11 @@ export function SignalTimeline({ language = "en", events = [] }) {
     (a, b) => new Date(a.checked_at) - new Date(b.checked_at)
   );
   const displayEvents = chronologicalEvents
-  .map((event, index) => ({
-    event,
-    definingReason: getMonitoringReason(
+    .map((event, index) => ({
       event,
-      chronologicalEvents[index - 1],
-      language
-    ),
-  }))
-  .reverse()
-  .slice(0, 5);
+      definingReason: getMonitoringReason(event, chronologicalEvents[index - 1], language),
+    }))
+    .reverse();
 
   return (
     <section className="fcx-card fcx-timeline">
@@ -467,9 +473,7 @@ export function SignalTimeline({ language = "en", events = [] }) {
           <p>{c.timelineHelp}</p>
         </div>
         <div className="fcx-timeline-toggle-meta">
-          <span>
-  {Math.min(events.length, 5)} most recent
-</span>
+          <span>{events.length} {events.length === 1 ? c.monitoringPoint : c.monitoringPoints}</span>
           <strong>{expanded ? "−" : "+"}</strong>
         </div>
       </button>
