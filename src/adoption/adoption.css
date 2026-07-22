@@ -49,3 +49,20 @@
   .fcx-timeline-toggle-meta>span{white-space:normal!important;text-align:right;max-width:82px!important}
   .fcx-outcome-recorded-row{align-items:flex-start}
 }
+
+/* Compact dashboard FieldProof summary */
+.fcx-record{margin-top:7px;padding:12px 13px}
+.fcx-record-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px}
+.fcx-record-heading p{margin:3px 0 0;max-width:280px;color:#607486;font-size:10.5px;line-height:1.35}
+.fcx-proof-status{flex:none;padding:5px 8px;border:1px solid #d7e1e8;border-radius:999px;background:#f5f8fa;color:#607486;font-size:8.5px;font-weight:900;white-space:nowrap}
+.fcx-proof-status.is-active{border-color:#bbf7d0;background:#ecfdf5;color:#166534}
+.fcx-record .fcx-stat-grid{grid-template-columns:repeat(3,1fr);gap:7px}
+.fcx-record .fcx-stat{padding:9px 6px;border-radius:12px}
+.fcx-record .fcx-stat strong{font-size:19px;line-height:21px}
+.fcx-record .fcx-stat span{font-size:8.5px}
+
+@media(max-width:520px){
+  .fcx-record-heading{align-items:center}
+  .fcx-record-heading p{max-width:225px}
+  .fcx-record .fcx-stat-grid{grid-template-columns:repeat(3,1fr)}
+}

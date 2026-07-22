@@ -21,6 +21,13 @@ const FIELDCALL_SITE_URL = "https://myfieldcall.com";
 const FIELDCALL_SUPPORT_EMAIL = "fieldcallsupport@gmail.com";
 const PASSWORD_RESET_REDIRECT_URL = `${window.location.origin}/?mode=reset-password`;
 
+function isFieldCallInstalled() {
+  return Boolean(
+    window.matchMedia?.("(display-mode: standalone)")?.matches ||
+    window.navigator?.standalone === true
+  );
+}
+
 function getInitialAuthMode() {
   try {
     const params = new URLSearchParams(window.location.search);
@@ -277,6 +284,7 @@ const [form, setForm] = useState({
   const [resultJobContext, setResultJobContext] = useState(null);
   const [installPromptEvent, setInstallPromptEvent] = useState(null);
 const [showInstallHelp, setShowInstallHelp] = useState(false);
+const [appInstalled, setAppInstalled] = useState(() => isFieldCallInstalled());
 const [pushAlertsEnabled, setPushAlertsEnabled] = useState(false);
 const [pushAlertsLoading, setPushAlertsLoading] = useState(false);
 const [pushAlertMessage, setPushAlertMessage] = useState("");
@@ -450,6 +458,7 @@ useEffect(() => {
   function handleAppInstalled() {
     setInstallPromptEvent(null);
     setShowInstallHelp(false);
+    setAppInstalled(true);
   }
 
   window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
@@ -1194,6 +1203,52 @@ async function handleShareApp() {
     setCopyNotice("Share is not supported on this browser.");
   } catch {
     // User may cancel the share sheet. No message needed.
+  }
+}
+
+async function handleShareAssessment() {
+  if (!result) return;
+
+  const projectName = form.projectName || t("notEntered");
+  const location = [form.city, form.state].filter(Boolean).join(", ");
+  const service = getLocalizedOptionLabel(form.workType, language);
+  const workDate = formatDateLabel(form.workDate, language);
+  const recommendation = getDisplaySignal(result.shortSignal, language);
+  const workWindow = result.window || result.bestWindowLabel || result.workWindowReason || "—";
+  const primaryReason = result.reason || result.workWindowReason || "—";
+  const shareText = language === "es"
+    ? [
+        "Evaluación de FieldCall",
+        `Recomendación: ${recommendation}`,
+        `${projectName}${location ? ` · ${location}` : ""}`,
+        `${service} · ${workDate}`,
+        `Ventana de trabajo: ${workWindow}`,
+        `Consideración principal: ${primaryReason}`,
+        "",
+        "Preparado con FieldCall",
+        "Mismo clima. Mejores decisiones.",
+      ].join("\n")
+    : [
+        "FieldCall Assessment",
+        `Recommendation: ${recommendation}`,
+        `${projectName}${location ? ` · ${location}` : ""}`,
+        `${service} · ${workDate}`,
+        `Workable window: ${workWindow}`,
+        `Primary consideration: ${primaryReason}`,
+        "",
+        "Prepared with FieldCall",
+        "Same weather. Better decisions.",
+      ].join("\n");
+
+  try {
+    if (navigator.share) {
+      await navigator.share({ title: t("shareAssessment"), text: shareText });
+      return;
+    }
+
+    await copyText(shareText, t("assessmentSummary"));
+  } catch {
+    // Closing the native share sheet does not require an error message.
   }
 }
 
@@ -3657,15 +3712,15 @@ const showFallbackActions =
             <button
               type="button"
               onClick={() => viewSavedJob(job)}
-              style={viewCallLinkButtonStyle}
+              style={reviewCallButtonStyle}
             >
-              {t("viewCall")}
+              {t("reviewCall")}
             </button>
 
             <button
               type="button"
               onClick={() => viewSavedJob(job, "messages")}
-              style={messagesJobButtonWideStyle}
+              style={messagesJobButtonSecondaryStyle}
             >
               <span style={messagesJobButtonIconStyle}>💬</span>
               {t("messages")}
@@ -4304,14 +4359,20 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
   <div style={jobListStyle}>
     <div style={queueSectionHeaderStyle}>
       <div style={sectionTitleWithIconStyle}>
-        <span style={greenSectionIconStyle}>✓</span>
+        <span style={dashboardReviewJobs.length ? amberSectionIconStyle : greenSectionIconStyle}>
+          {dashboardReviewJobs.length ? "!" : "✓"}
+        </span>
         <div>
-          <h3 style={queueSectionTitleStyle}>{t("callsToReview")}</h3>
+          <h3 style={queueSectionTitleStyle}>
+            {dashboardReviewJobs.length === 1
+              ? t("oneCallNeedsReview")
+              : dashboardReviewJobs.length > 1
+              ? t("multipleCallsNeedReview", { count: dashboardReviewJobs.length })
+              : t("callsToReview")}
+          </h3>
           <p style={queueSectionHelpStyle}>{t("callsToReviewHelp")}</p>
         </div>
       </div>
-
-      <span style={queueSectionCountStyle}>{dashboardReviewJobs.length}</span>
     </div>
 
     {dashboardReviewJobs.length === 0 && (
@@ -4397,14 +4458,14 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
 </div>
             </div>
 
-            {adoption.journey.shadow_mode_enabled !== false && adoption.journey?.show_field_proof_on_dashboard !== false && (
+            {adoption.journey?.show_field_proof_on_dashboard !== false && (
               <FieldCallRecord language={language} record={adoption.record} />
             )}
 
 <div style={appActionsCardStyle}>
   <div style={appActionsWeatherStyle}>
     <span style={weatherConnectedIconStyle}>☁</span>
-    <div>
+    <div style={appActionsWeatherTextStyle}>
       <strong>{t("weatherDataConnected")}</strong>
       <p style={miniTextStyle}>{t("weatherDataConnectedHelp")} {weatherConnectedTime}</p>
     </div>
@@ -4439,16 +4500,6 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
 
   </div>
 
-  <div style={appActionsButtonRowStyle}>
-    <button onClick={handleShareApp} style={appActionButtonStyle}>
-      {t("shareFieldCall")}
-    </button>
-
-    <button onClick={handleInstallApp} style={appActionButtonStyle}>
-      {t("addToHomeScreen")}
-    </button>
-  </div>
-
   <button
     type="button"
     onClick={() => setScreen("trustCenter")}
@@ -4463,14 +4514,6 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
     </div>
   )}
 
-  {showInstallHelp && (
-    <div style={installHelpStyle}>
-      <strong>iPhone:</strong> {t("iphoneInstallHelpStart")}{" "}
-      <strong>{t("addToHomeScreen")}</strong>.
-      <br />
-      <strong>Android:</strong> {t("androidInstallHelp")}
-    </div>
-  )}
 </div>
           </section>
         )}
@@ -4502,7 +4545,7 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
               </div>
 
               <div style={settingsPanelStyle}>
-                <p style={eyebrowStyle}>{t("notifications")}</p>
+                <p style={eyebrowStyle}>{t("appAndNotifications")}</p>
                 <div style={settingsCompactRowStyle}>
                   <div style={settingsCompactTextStyle}>
                     <strong style={settingsCompactTitleStyle}>{t("finalCallAlerts")}</strong>
@@ -4519,6 +4562,29 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
                 </div>
                 {nonRoutinePushAlertMessage && (
                   <div style={settingsMessageStyle}>{nonRoutinePushAlertMessage}</div>
+                )}
+                <div style={settingsCompactDividerStyle} />
+                <button
+                  type="button"
+                  onClick={handleInstallApp}
+                  style={accountDeviceRowStyle(appInstalled)}
+                  disabled={appInstalled}
+                >
+                  <span style={accountDeviceTextStyle}>
+                    <strong style={accountDeviceTitleStyle}>{t("addToHomeScreen")}</strong>
+                    <small style={accountDeviceHelpStyle}>
+                      {appInstalled ? t("installedOnThisDevice") : t("addToHomeScreenHelp")}
+                    </small>
+                  </span>
+                  <b>{appInstalled ? "✓" : "›"}</b>
+                </button>
+                {showInstallHelp && !appInstalled && (
+                  <div style={installHelpStyle}>
+                    <strong>iPhone:</strong> {t("iphoneInstallHelpStart")}{" "}
+                    <strong>{t("addToHomeScreen")}</strong>.
+                    <br />
+                    <strong>Android:</strong> {t("androidInstallHelp")}
+                  </div>
                 )}
               </div>
 
@@ -4576,6 +4642,10 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
                 <a href={`mailto:${FIELDCALL_SUPPORT_EMAIL}`} style={accountMenuRowStyle}>
                   <span>{t("contactSupport")}</span><b>›</b>
                 </a>
+                <div style={settingsCompactDividerStyle} />
+                <button type="button" onClick={handleShareApp} style={accountMenuRowStyle}>
+                  <span>{t("recommendFieldCall")}</span><b>↗</b>
+                </button>
               </div>
 
               <div style={settingsDangerPanelStyle}>
@@ -5516,10 +5586,19 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
   )}
 </div>
 
-{currentResultJob && (
+{result && (
   <div style={projectActionsCardStyle}>
     <p style={projectDetailsTitleStyle}>{t("projectActions")}</p>
 
+    <button
+      type="button"
+      onClick={handleShareAssessment}
+      style={shareAssessmentButtonStyle}
+    >
+      <span aria-hidden="true">↗</span> {t("shareAssessment")}
+    </button>
+
+    {currentResultJob && (
     <div style={projectActionGridStyle}>
       <button
         onClick={() => duplicateJobToNewDate(currentResultJob)}
@@ -5532,6 +5611,7 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
         {t("delete")}
       </button>
     </div>
+    )}
   </div>
 )}
 
@@ -5698,7 +5778,9 @@ createCompanyHelper: "Create your company in about 60 seconds. No credit card re
     finalCallsHelp: "Final calls for review.",
     noFinalCalls: "No final calls ready.",
     callsToReview: "Calls to Review",
-    callsToReviewHelp: "Jobs requiring your attention.",
+    oneCallNeedsReview: "1 Call Needs Review",
+    multipleCallsNeedReview: "{count} Calls Need Review",
+    callsToReviewHelp: "Confirm the contractor outcome.",
     noCallsToReview: "No calls need review right now.",
     tomorrowsCalls: "Tomorrow's Calls",
     tomorrowsCallsHelp: "Calls that need communication before tomorrow’s work.",
@@ -5715,12 +5797,17 @@ createCompanyHelper: "Create your company in about 60 seconds. No credit card re
     weatherDataConnectedHelp: "NWS • Open-Meteo • Updated",
     howRecommendationsWork: "How recommendations work",
     dashboardPreferences: "Dashboard",
-    showFieldProofDashboard: "Show Field Proof on dashboard",
+    showFieldProofDashboard: "Show FieldProof",
     showFieldProofDashboardHelp: "Hide the summary without stopping tracking or deleting history.",
     jobsUpdated: "Jobs updated",
     updated: "Updated",
     shareFieldCall: "Share FieldCall",
+    recommendFieldCall: "Recommend FieldCall",
+    shareAssessment: "Share Assessment",
+    assessmentSummary: "Assessment summary",
     addToHomeScreen: "Add to Home Screen",
+    addToHomeScreenHelp: "Install FieldCall for faster access on this device.",
+    installedOnThisDevice: "Installed on this device",
     enableFinalCallAlerts: "Enable Final Call Alerts",
     enablingAlerts: "Enabling alerts...",
     finalCallAlerts: "Final Call Alerts",
@@ -5754,6 +5841,7 @@ createCompanyHelper: "Create your company in about 60 seconds. No credit card re
     accountAndSecurity: "Account & Security",
     accountIntro: "Manage your login, device alerts, support, and account access.",
     notifications: "Notifications",
+    appAndNotifications: "App & Notifications",
     security: "Security",
     changePassword: "Change Password",
     resetPassword: "Reset Password",
@@ -5877,6 +5965,7 @@ createCompanyHelper: "Create your company in about 60 seconds. No credit card re
     saveDate: "Save Date",
     view: "View",
     viewCall: "View call",
+    reviewCall: "Review Call",
     duplicate: "Duplicate",
     delete: "Delete",
     check: "Check",
@@ -6017,7 +6106,9 @@ createCompanyHelper: "Cree su empresa en aproximadamente 60 segundos. No se requ
     finalCallsHelp: "Decisiones finales para revisar.",
     noFinalCalls: "No hay decisiones finales listas.",
     callsToReview: "Decisiones para revisar",
-    callsToReviewHelp: "Trabajos que requieren su atención.",
+    oneCallNeedsReview: "1 decisión necesita revisión",
+    multipleCallsNeedReview: "{count} decisiones necesitan revisión",
+    callsToReviewHelp: "Confirme el resultado del contratista.",
     noCallsToReview: "No hay decisiones que revisar ahora.",
     tomorrowsCalls: "Decisiones de mañana",
     tomorrowsCallsHelp: "Decisiones que necesitan comunicación antes del trabajo de mañana.",
@@ -6034,12 +6125,17 @@ createCompanyHelper: "Cree su empresa en aproximadamente 60 segundos. No se requ
     weatherDataConnectedHelp: "NWS • Open-Meteo • Actualizado",
     howRecommendationsWork: "Cómo funcionan las recomendaciones",
     dashboardPreferences: "Panel",
-    showFieldProofDashboard: "Mostrar Field Proof en el panel",
+    showFieldProofDashboard: "Mostrar FieldProof",
     showFieldProofDashboardHelp: "Oculte el resumen sin detener el seguimiento ni borrar el historial.",
     jobsUpdated: "Trabajos actualizados",
     updated: "Actualizado",
     shareFieldCall: "Compartir FieldCall",
+    recommendFieldCall: "Recomendar FieldCall",
+    shareAssessment: "Compartir evaluación",
+    assessmentSummary: "Resumen de evaluación",
     addToHomeScreen: "Agregar a pantalla de inicio",
+    addToHomeScreenHelp: "Instale FieldCall para acceder más rápido en este dispositivo.",
+    installedOnThisDevice: "Instalado en este dispositivo",
     enableFinalCallAlerts: "Activar alertas de decisión final",
     enablingAlerts: "Activando alertas...",
     finalCallAlerts: "Alertas de decisión final",
@@ -6073,6 +6169,7 @@ createCompanyHelper: "Cree su empresa en aproximadamente 60 segundos. No se requ
     accountAndSecurity: "Cuenta y seguridad",
     accountIntro: "Administre su acceso, alertas del dispositivo y ayuda.",
     notifications: "Notificaciones",
+    appAndNotifications: "App y notificaciones",
     security: "Seguridad",
     changePassword: "Cambiar contraseña",
     resetPassword: "Restablecer contraseña",
@@ -6196,6 +6293,7 @@ createCompanyHelper: "Cree su empresa en aproximadamente 60 segundos. No se requ
     saveDate: "Guardar fecha",
     view: "Ver",
     viewCall: "Ver decisión",
+    reviewCall: "Revisar decisión",
     duplicate: "Duplicar",
     delete: "Eliminar",
     check: "Revisar",
@@ -10354,7 +10452,7 @@ const heroCardStyle = {
   background: "linear-gradient(135deg, #071528 0%, #0d1f35 55%, #13243a 100%)",
   color: "white",
   borderRadius: "22px",
-  padding: "15px 16px 14px",
+  padding: "12px 14px 11px",
   boxShadow: "0 14px 28px rgba(15, 23, 42, 0.24)",
   border: "1px solid rgba(255,255,255,0.10)",
 };
@@ -10365,7 +10463,7 @@ const heroBrandRowStyle = {
   justifyContent: "flex-start",
   gap: "5px",
   width: "100%",
-  marginBottom: "13px",
+  marginBottom: "9px",
 };
 
 const heroLogoImageStyle = {
@@ -10406,7 +10504,7 @@ const heroMainRowStyle = {
   gridTemplateColumns: "1fr auto",
   gap: "12px",
   alignItems: "center",
-  marginBottom: "12px",
+  marginBottom: "9px",
 };
 
 const heroCopyBlockStyle = {
@@ -10422,7 +10520,7 @@ const heroActionRowStyle = {
 const heroButtonStyle = {
   width: "auto",
   minWidth: "145px",
-  padding: "12px 13px",
+  padding: "10px 12px",
   borderRadius: "16px",
   border: "none",
   background: "#f5c542",
@@ -10435,7 +10533,7 @@ const heroButtonStyle = {
 
 const heroQuickStartStyle = {
   marginTop: "2px",
-  padding: "9px 10px",
+  padding: "7px 9px",
   borderRadius: "16px",
   border: "1px solid rgba(255,255,255,0.16)",
   background: "rgba(255,255,255,0.08)",
@@ -10483,8 +10581,8 @@ const heroQuickStartHelpStyle = {
 
 const heroQuickStartSelectStyle = {
   width: "100%",
-  height: "36px",
-  padding: "7px 9px",
+  height: "32px",
+  padding: "5px 8px",
   borderRadius: "12px",
   border: "1px solid rgba(255,255,255,0.20)",
   background: "#071528",
@@ -10589,13 +10687,13 @@ const premiumMiniCardStyle = {
 };
 
 const appActionsCardStyle = {
-  marginTop: "7px",
+  marginTop: "6px",
   background: "rgba(255,255,255,0.92)",
   borderRadius: "18px",
-  padding: "9px 10px 8px",
+  padding: "8px 9px 7px",
   border: "1px solid rgba(226, 232, 240, 0.90)",
   display: "grid",
-  gap: "7px",
+  gap: "6px",
   boxShadow: "0 8px 20px rgba(15, 23, 42, 0.05)",
 };
 
@@ -10607,23 +10705,31 @@ const appActionsTopRowStyle = {
 const appActionsWeatherStyle = {
   display: "flex",
   alignItems: "center",
-  gap: "9px",
+  gap: "8px",
   minWidth: 0,
   color: "#0f172a",
   fontSize: "12px",
-  padding: "1px 2px 7px",
+  padding: "0 1px 6px",
   borderBottom: "1px solid #eef2f7",
 };
 
+const appActionsWeatherTextStyle = {
+  minWidth: 0,
+  display: "flex",
+  alignItems: "baseline",
+  gap: "5px",
+  flexWrap: "wrap",
+};
+
 const weatherConnectedIconStyle = {
-  width: "30px",
-  height: "30px",
+  width: "26px",
+  height: "26px",
   borderRadius: "999px",
   border: "1px solid #bbf7d0",
   color: "#16a34a",
   display: "grid",
   placeItems: "center",
-  fontSize: "16px",
+  fontSize: "14px",
   flex: "0 0 auto",
 };
 
@@ -10695,8 +10801,8 @@ const installHelpStyle = {
 };
 
 const miniTextStyle = {
-  margin: "3px 0 0",
-  fontSize: "12px",
+  margin: 0,
+  fontSize: "10.5px",
   color: "#64748b",
 };
 
@@ -10795,10 +10901,10 @@ const autoFinalDismissButtonStyle = {
 const upcomingCardStyle = {
   background: "rgba(255,255,255,0.96)",
   borderRadius: "22px",
-  padding: "10px",
+  padding: "9px",
   border: "1px solid rgba(226, 232, 240, 0.95)",
   boxShadow: "0 12px 26px rgba(15, 23, 42, 0.08)",
-  marginTop: "9px",
+  marginTop: "7px",
 };
 
 const upcomingHeaderStyle = {
@@ -10864,7 +10970,7 @@ const jobListStyle = {
 
 const queueSectionHeaderStyle = {
   marginTop: "3px",
-  padding: "7px 10px",
+  padding: "6px 9px",
   borderRadius: "14px",
   background: "#f8fafc",
   border: "1px solid #e2e8f0",
@@ -10898,6 +11004,13 @@ const greenSectionIconStyle = {
   ...actionRequiredIconStyle,
   background: "#16a34a",
   fontSize: "12px",
+};
+
+const amberSectionIconStyle = {
+  ...actionRequiredIconStyle,
+  background: "#f5c542",
+  color: "#713f12",
+  fontSize: "13px",
 };
 
 const actionRequiredBadgeStyle = {
@@ -10959,8 +11072,8 @@ const drawerCountPillStyle = {
 
 const preliminaryDrawerButtonStyle = {
   width: "100%",
-  marginTop: "6px",
-  padding: "9px 12px",
+  marginTop: "4px",
+  padding: "8px 11px",
   borderRadius: "14px",
   border: "1px solid #e2e8f0",
   background: "#ffffff",
@@ -10982,7 +11095,7 @@ const preliminaryDrawerContentStyle = {
 const jobCardStyle = {
   border: "1px solid #e2e8f0",
   borderRadius: "14px",
-  padding: "7px 10px",
+  padding: "6px 9px",
   background: "#ffffff",
   boxShadow: "0 4px 12px rgba(15, 23, 42, 0.03)",
   overflow: "hidden",
@@ -11000,7 +11113,7 @@ const jobWorkDateStyle = {
 
 const jobCardContentStyle = {
   display: "grid",
-  gap: "8px",
+  gap: "6px",
 };
 
 const jobCompactTopRowStyle = {
@@ -11036,12 +11149,12 @@ const jobServiceColumnStyle = {
 };
 
 const jobWeatherIconStyle = {
-  width: "28px",
-  height: "28px",
+  width: "24px",
+  height: "24px",
   display: "grid",
   placeItems: "center",
-  fontSize: "20px",
-  lineHeight: "22px",
+  fontSize: "17px",
+  lineHeight: "19px",
 };
 
 const jobInfoColumnStyle = {
@@ -11092,7 +11205,7 @@ const serviceTagStyle = {
 
 const jobBadgeStyle = {
   justifySelf: "end",
-  maxWidth: "124px",
+  maxWidth: "142px",
   boxSizing: "border-box",
   border: "1px solid",
   borderRadius: "999px",
@@ -11101,8 +11214,6 @@ const jobBadgeStyle = {
   lineHeight: "12px",
   fontWeight: 900,
   whiteSpace: "nowrap",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
 };
 
 const jobTitleStyle = {
@@ -11312,11 +11423,45 @@ const preparingFinalCallButtonStyle = {
 
 const finalJobActionRowStyle = {
   display: "grid",
-  gridTemplateColumns: "auto minmax(0, 1fr)",
+  gridTemplateColumns: "minmax(0, 1fr) minmax(0, .8fr)",
   gap: "8px",
   alignItems: "center",
   width: "100%",
   minWidth: 0,
+};
+
+const reviewCallButtonStyle = {
+  width: "100%",
+  border: "none",
+  background: "linear-gradient(135deg, #071528 0%, #0d1f35 100%)",
+  color: "#ffffff",
+  borderRadius: "11px",
+  padding: "8px",
+  minHeight: "34px",
+  fontSize: "12px",
+  lineHeight: "14px",
+  fontWeight: 900,
+  cursor: "pointer",
+  whiteSpace: "nowrap",
+};
+
+const messagesJobButtonSecondaryStyle = {
+  width: "100%",
+  border: "1px solid #cbd5e1",
+  background: "#ffffff",
+  color: "#071528",
+  borderRadius: "11px",
+  padding: "8px",
+  minHeight: "34px",
+  fontSize: "12px",
+  lineHeight: "14px",
+  fontWeight: 900,
+  cursor: "pointer",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: "5px",
+  whiteSpace: "nowrap",
 };
 
 const viewCallLinkButtonStyle = {
@@ -11525,13 +11670,13 @@ const screenBackButtonStyle = {
 const dashboardSettingsGridStyle = {
   display: "grid",
   gridTemplateColumns: "1fr",
-  gap: "8px",
+  gap: "6px",
 };
 
 const dashboardSettingsButtonStyle = {
   width: "100%",
   minWidth: 0,
-  padding: "11px 12px",
+  padding: "9px 11px",
   borderRadius: "14px",
   border: "1px solid #dbe3ec",
   background: "#ffffff",
@@ -11687,6 +11832,42 @@ const accountMenuRowStyle = {
   textAlign: "left",
   cursor: "pointer",
   textDecoration: "none",
+};
+
+function accountDeviceRowStyle(installed) {
+  return {
+    width: "100%",
+    padding: "9px 0 7px",
+    border: "none",
+    background: "transparent",
+    color: installed ? "#166534" : "#0f172a",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "12px",
+    textAlign: "left",
+    cursor: installed ? "default" : "pointer",
+  };
+}
+
+const accountDeviceTextStyle = {
+  minWidth: 0,
+  display: "grid",
+  gap: "3px",
+  color: "inherit",
+};
+
+const accountDeviceTitleStyle = {
+  fontSize: "13px",
+  lineHeight: "16px",
+  fontWeight: 900,
+};
+
+const accountDeviceHelpStyle = {
+  color: "#64748b",
+  fontSize: "11px",
+  lineHeight: "15px",
+  fontWeight: 700,
 };
 
 const settingsDangerPanelStyle = {
@@ -12627,6 +12808,20 @@ const projectActionsCardStyle = {
   border: "1px solid #e2e8f0",
   borderRadius: "14px",
   padding: "8px 10px",
+};
+
+const shareAssessmentButtonStyle = {
+  width: "100%",
+  marginBottom: "7px",
+  padding: "9px 11px",
+  border: "1px solid #071528",
+  borderRadius: "11px",
+  background: "#071528",
+  color: "#ffffff",
+  fontSize: "12px",
+  lineHeight: "15px",
+  fontWeight: 900,
+  cursor: "pointer",
 };
 
 const callFeedbackCardStyle = {

@@ -270,12 +270,17 @@ export function useAdoptionExperience({
       return item.decision === item.fieldcall_signal;
     }).length;
 
+    const agreementRate = finalDecisions.length
+      ? Math.round((aligned / finalDecisions.length) * 100)
+      : null;
+
     return {
       jobsMonitored: eventsByJob.size,
       callsRecorded: finalDecisions.length,
       materiallyChanged,
       outcomesCaptured: outcomes.length,
       aligned,
+      agreementRate,
     };
   }, [signalEvents, decisions, outcomes]);
 

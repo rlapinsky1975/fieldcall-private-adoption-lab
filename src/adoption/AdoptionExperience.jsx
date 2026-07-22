@@ -18,12 +18,15 @@ const COPY = {
     confirm: "Confirm current standard",
     enable: "Enable alerts",
     monitoring: "FieldCall is monitoring your first job.",
-    recordTitle: "Your FieldCall Record",
-    recordHelp: "Proof from your own operation—not a generic accuracy claim.",
+    recordTitle: "FieldProof",
+    recordHelp: "See how FieldCall recommendations compare with confirmed outcomes.",
     monitored: "Jobs monitored",
     changed: "Calls that changed",
     calls: "Your calls saved",
-    outcomes: "Outcomes captured",
+    outcomes: "Confirmed outcomes",
+    agreement: "Recommendation agreement",
+    proofActive: "Active record",
+    proofBuilding: "Building your record",
     shadowTitle: "Run beside your judgment",
     shadowHelp: "Make your own call first. FieldCall will compare—not replace it.",
     yourRead: "Before you see FieldCall, what is your current read?",
@@ -63,7 +66,7 @@ const COPY = {
     missing: "What mattered that FieldCall did not know?",
     missingPlaceholder: "Optional local condition or operational factor",
     saveOutcome: "Save outcome",
-    outcomeSaved: "Outcome saved. This now counts in your FieldCall Record.",
+    outcomeSaved: "Outcome saved. This now counts in FieldProof.",
   },
   es: {
     privateTest: "PRUEBA PRIVADA",
@@ -81,12 +84,15 @@ const COPY = {
     confirm: "Confirmar estándar actual",
     enable: "Activar alertas",
     monitoring: "FieldCall está monitoreando su primer trabajo.",
-    recordTitle: "Su historial de FieldCall",
-    recordHelp: "Prueba de su propia operación, no una promesa genérica de precisión.",
+    recordTitle: "FieldProof",
+    recordHelp: "Vea cómo las recomendaciones de FieldCall se comparan con los resultados confirmados.",
     monitored: "Trabajos monitoreados",
     changed: "Decisiones que cambiaron",
     calls: "Sus decisiones guardadas",
-    outcomes: "Resultados registrados",
+    outcomes: "Resultados confirmados",
+    agreement: "Coincidencia de recomendaciones",
+    proofActive: "Registro activo",
+    proofBuilding: "Creando su registro",
     shadowTitle: "Trabaje junto a su criterio",
     shadowHelp: "Decida primero. FieldCall compara; no reemplaza su criterio.",
     yourRead: "Antes de ver FieldCall, ¿cuál es su lectura actual?",
@@ -126,7 +132,7 @@ const COPY = {
     missing: "¿Qué factor importante no conocía FieldCall?",
     missingPlaceholder: "Condición local o factor operativo opcional",
     saveOutcome: "Guardar resultado",
-    outcomeSaved: "Resultado guardado. Ahora cuenta en su historial de FieldCall.",
+    outcomeSaved: "Resultado guardado. Ahora cuenta en FieldProof.",
   },
 };
 
@@ -202,19 +208,22 @@ export function ActivationChecklist({
 export function FieldCallRecord({ language = "en", record }) {
   const c = useCopy(language);
   const stats = [
-    [record?.jobsMonitored || 0, c.monitored],
-    [record?.materiallyChanged || 0, c.changed],
-    [record?.callsRecorded || 0, c.calls],
     [record?.outcomesCaptured || 0, c.outcomes],
+    [record?.agreementRate == null ? "—" : `${record.agreementRate}%`, c.agreement],
+    [record?.jobsMonitored || 0, c.monitored],
   ];
+  const hasProof = Number(record?.outcomesCaptured || 0) > 0;
 
   return (
     <section className="fcx-card fcx-record">
-      <div className="fcx-card-heading compact">
+      <div className="fcx-record-heading">
         <div>
-          <span className="fcx-eyebrow">FIELD PROOF</span>
+          <span className="fcx-eyebrow">FIELDPROOF</span>
           <p>{c.recordHelp}</p>
         </div>
+        <span className={`fcx-proof-status ${hasProof ? "is-active" : ""}`}>
+          {hasProof ? c.proofActive : c.proofBuilding}
+        </span>
       </div>
       <div className="fcx-stat-grid">
         {stats.map(([value, label]) => (
