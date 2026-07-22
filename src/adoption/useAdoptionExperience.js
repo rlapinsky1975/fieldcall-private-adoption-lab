@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 const EMPTY_JOURNEY = {
   shadow_mode_enabled: true,
+  show_field_proof_on_dashboard: true,
   risk_posture_confirmed_at: null,
   activation_completed_at: null,
 };
@@ -125,6 +126,14 @@ export function useAdoptionExperience({
 
   const setShadowMode = useCallback(
     (enabled) => upsertJourney({ shadow_mode_enabled: Boolean(enabled) }),
+    [upsertJourney]
+  );
+
+  const setShowFieldProofOnDashboard = useCallback(
+    (enabled) =>
+      upsertJourney({
+        show_field_proof_on_dashboard: Boolean(enabled),
+      }),
     [upsertJourney]
   );
 
@@ -292,6 +301,7 @@ export function useAdoptionExperience({
     record,
     reload: load,
     setShadowMode,
+    setShowFieldProofOnDashboard,
     confirmRiskPosture,
     submitDecision,
     submitOutcome,
