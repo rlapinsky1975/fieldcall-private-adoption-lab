@@ -238,14 +238,22 @@ export function useAdoptionExperience({
       alerts: Boolean(pushAlertsEnabled),
     };
     const completedCount = Object.values(steps).filter(Boolean).length;
+    const completedPreviously = Boolean(journey.activation_completed_at);
 
     return {
       steps,
       completedCount,
       total: 3,
-      complete: completedCount === 3,
+      // Activation is a one-time milestone. Turning an optional preference such
+      // as final-call alerts off later must not reopen the startup checklist.
+      complete: completedPreviously || completedCount === 3,
     };
-  }, [jobs.length, journey.risk_posture_confirmed_at, pushAlertsEnabled]);
+  }, [
+    jobs.length,
+    journey.risk_posture_confirmed_at,
+    journey.activation_completed_at,
+    pushAlertsEnabled,
+  ]);
 
   useEffect(() => {
     if (!activation.complete || journey.activation_completed_at) return;
