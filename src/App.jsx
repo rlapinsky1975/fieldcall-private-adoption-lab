@@ -1208,52 +1208,6 @@ async function handleShareApp() {
   }
 }
 
-async function handleShareAssessment() {
-  if (!result) return;
-
-  const projectName = form.projectName || t("notEntered");
-  const location = [form.city, form.state].filter(Boolean).join(", ");
-  const service = getLocalizedOptionLabel(form.workType, language);
-  const workDate = formatDateLabel(form.workDate, language);
-  const recommendation = getDisplaySignal(result.shortSignal, language);
-  const workWindow = result.window || result.bestWindowLabel || result.workWindowReason || "—";
-  const primaryReason = result.reason || result.workWindowReason || "—";
-  const shareText = language === "es"
-    ? [
-        "Evaluación de FieldCall",
-        `Recomendación: ${recommendation}`,
-        `${projectName}${location ? ` · ${location}` : ""}`,
-        `${service} · ${workDate}`,
-        `Ventana de trabajo: ${workWindow}`,
-        `Consideración principal: ${primaryReason}`,
-        "",
-        "Preparado con FieldCall",
-        "Mismo clima. Mejores decisiones.",
-      ].join("\n")
-    : [
-        "FieldCall Assessment",
-        `Recommendation: ${recommendation}`,
-        `${projectName}${location ? ` · ${location}` : ""}`,
-        `${service} · ${workDate}`,
-        `Workable window: ${workWindow}`,
-        `Primary consideration: ${primaryReason}`,
-        "",
-        "Prepared with FieldCall",
-        "Same weather. Better decisions.",
-      ].join("\n");
-
-  try {
-    if (navigator.share) {
-      await navigator.share({ title: t("shareAssessment"), text: shareText });
-      return;
-    }
-
-    await copyText(shareText, t("assessmentSummary"));
-  } catch {
-    // Closing the native share sheet does not require an error message.
-  }
-}
-
 async function handleInstallApp() {
   if (installPromptEvent) {
     installPromptEvent.prompt();
@@ -5355,6 +5309,36 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
 
                 <p style={resultSummaryLabelStyle}>{t("mainReason")}</p>
                 <p style={resultMainReasonStyle}>{getDisplayReason(result, language)}</p>
+
+                {!guestMode && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setResultMode("messages");
+                      setCopyNotice("");
+                    }}
+                    style={resultShareIconButtonStyle}
+                    aria-label={t("shareAssessment")}
+                    title={t("shareAssessment")}
+                  >
+                    <svg
+                      aria-hidden="true"
+                      viewBox="0 0 24 24"
+                      width="19"
+                      height="19"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <circle cx="18" cy="5" r="2.5" />
+                      <circle cx="6" cy="12" r="2.5" />
+                      <circle cx="18" cy="19" r="2.5" />
+                      <path d="m8.2 10.8 7.6-4.5M8.2 13.2l7.6 4.5" />
+                    </svg>
+                  </button>
+                )}
               </div>
 
 {!guestMode && currentResultJobId && currentResultJob?.shadowModeEnabled === true && currentRecordedDecision && (
@@ -5385,41 +5369,7 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
       {language === "es" ? "Crear cuenta gratuita" : "Create Free Account"}
     </button>
   </div>
-) : (
-  <div style={copyActionCardStyle}>
-    <p style={copyActionTitleStyle}>{t("communication")}</p>
-    <p style={communicationHelpStyle}>
-      {t("communicationHelp")}
-    </p>
-
-    {copyNotice && /copied|copiado/i.test(copyNotice) && (
-      <div style={copyNoticeStyle}>{copyNotice}</div>
-    )}
-
-    <div style={copyGridStyle}>
-      <button
-        onClick={() => copyText(emailTemplate, t("client"))}
-        style={copyButtonStyle}
-      >
-        {t("client")}
-      </button>
-
-      <button
-        onClick={() => copyText(crewTemplate, t("crew"))}
-        style={copyButtonStyle}
-      >
-        {t("crew")}
-      </button>
-
-      <button
-        onClick={() => copyText(textTemplate, t("vendor"))}
-        style={copyButtonStyle}
-      >
-        {t("vendor")}
-      </button>
-    </div>
-  </div>
-)}
+) : null}
 
               <div style={whyCardStyle}>
                 <p style={whyTitleStyle}>{t("whyRecommendation")}</p>
@@ -5625,19 +5575,9 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
   )}
 </div>
 
-{result && (
+{currentResultJob && (
   <div style={projectActionsCardStyle}>
     <p style={projectDetailsTitleStyle}>{t("projectActions")}</p>
-
-    <button
-      type="button"
-      onClick={handleShareAssessment}
-      style={shareAssessmentButtonStyle}
-    >
-      <span aria-hidden="true">↗</span> {t("shareAssessment")}
-    </button>
-
-    {currentResultJob && (
     <div style={projectActionGridStyle}>
       <button
         onClick={() => duplicateJobToNewDate(currentResultJob)}
@@ -5650,7 +5590,6 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
         {t("delete")}
       </button>
     </div>
-    )}
   </div>
 )}
 
@@ -12544,6 +12483,7 @@ const resultCardStyle = {
 };
 
 const resultSummaryCardStyle = {
+  position: "relative",
   background: "#ffffff",
   borderRadius: "22px",
   padding: "18px",
@@ -12653,10 +12593,28 @@ const resultProductionWindowStyle = {
 
 const resultMainReasonStyle = {
   margin: 0,
+  paddingRight: "48px",
   color: "#0f172a",
   fontSize: "14px",
   lineHeight: "20px",
   fontWeight: 700,
+};
+
+const resultShareIconButtonStyle = {
+  position: "absolute",
+  right: "14px",
+  bottom: "14px",
+  width: "38px",
+  height: "38px",
+  padding: 0,
+  border: "1px solid #cbd5e1",
+  borderRadius: "999px",
+  background: "#ffffff",
+  color: "#071528",
+  display: "grid",
+  placeItems: "center",
+  boxShadow: "0 4px 12px rgba(15, 23, 42, 0.10)",
+  cursor: "pointer",
 };
 
 const resultTopRowStyle = {
@@ -12853,20 +12811,6 @@ const projectActionsCardStyle = {
   border: "1px solid #e2e8f0",
   borderRadius: "14px",
   padding: "8px 10px",
-};
-
-const shareAssessmentButtonStyle = {
-  width: "100%",
-  marginBottom: "7px",
-  padding: "9px 11px",
-  border: "1px solid #071528",
-  borderRadius: "11px",
-  background: "#071528",
-  color: "#ffffff",
-  fontSize: "12px",
-  lineHeight: "15px",
-  fontWeight: 900,
-  cursor: "pointer",
 };
 
 const callFeedbackCardStyle = {
@@ -13113,26 +13057,6 @@ const copyNoticeStyle = {
   fontSize: "12px",
   fontWeight: 800,
   marginBottom: "8px",
-};
-
-const copyGridStyle = {
-  display: "grid",
-  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-  gap: "6px",
-};
-
-const copyButtonStyle = {
-  width: "100%",
-  minWidth: 0,
-  padding: "7px 4px",
-  borderRadius: "12px",
-  border: "1px solid #d6b44c",
-  background: "#ffffff",
-  color: "#25364a",
-  fontSize: "11.5px",
-  fontWeight: 900,
-  cursor: "pointer",
-  whiteSpace: "nowrap",
 };
 
 const messageAudienceTabsStyle = {
