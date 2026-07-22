@@ -19,7 +19,11 @@ export function useAdoptionExperience({
   const [outcomes, setOutcomes] = useState([]);
   const [signalEvents, setSignalEvents] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [loadedScope, setLoadedScope] = useState("");
   const [message, setMessage] = useState("");
+
+  const activeScope = userId && companyId ? `${userId}:${companyId}` : "";
+  const journeyLoaded = Boolean(activeScope && loadedScope === activeScope);
 
   const load = useCallback(async () => {
     if (!supabase || !userId || !companyId) {
@@ -27,9 +31,12 @@ export function useAdoptionExperience({
       setDecisions([]);
       setOutcomes([]);
       setSignalEvents([]);
+      setLoadedScope("");
       return;
     }
 
+    const scopeBeingLoaded = `${userId}:${companyId}`;
+    setLoadedScope("");
     setLoading(true);
 
     try {
@@ -76,6 +83,7 @@ export function useAdoptionExperience({
       setDecisions(decisionsResult.data || []);
       setOutcomes(outcomesResult.data || []);
       setSignalEvents(eventsResult.data || []);
+      setLoadedScope(scopeBeingLoaded);
       setMessage("");
     } catch (error) {
       setMessage(
@@ -232,6 +240,11 @@ export function useAdoptionExperience({
   );
 
   const activation = useMemo(() => {
+    // Until the saved journey has loaded, there is no reliable basis for
+    // deciding whether onboarding is complete. Returning null prevents the
+    // new-user checklist from flashing during login.
+    if (!journeyLoaded) return null;
+
     const steps = {
       firstJob: jobs.length > 0,
       posture: Boolean(journey.risk_posture_confirmed_at),
@@ -250,15 +263,16 @@ export function useAdoptionExperience({
     };
   }, [
     jobs.length,
+    journeyLoaded,
     journey.risk_posture_confirmed_at,
     journey.activation_completed_at,
     pushAlertsEnabled,
   ]);
 
   useEffect(() => {
-    if (!activation.complete || journey.activation_completed_at) return;
+    if (!activation?.complete || journey.activation_completed_at) return;
     upsertJourney({ activation_completed_at: new Date().toISOString() });
-  }, [activation.complete, journey.activation_completed_at, upsertJourney]);
+  }, [activation?.complete, journey.activation_completed_at, upsertJourney]);
 
   const record = useMemo(() => {
     const eventsByJob = new Map();
@@ -309,6 +323,7 @@ export function useAdoptionExperience({
     outcomes,
     signalEvents,
     loading,
+    journeyLoaded,
     message,
     activation,
     record,
