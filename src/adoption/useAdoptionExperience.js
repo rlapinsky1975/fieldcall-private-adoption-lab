@@ -150,7 +150,7 @@ export function useAdoptionExperience({
 
       const { data, error } = await supabase
         .from("contractor_decisions")
-        .upsert(payload, { onConflict: "job_id,user_id,stage" })
+        .insert(payload)
         .select("*")
         .single();
 
@@ -201,7 +201,7 @@ export function useAdoptionExperience({
 
       const { data, error } = await supabase
         .from("job_outcomes")
-        .upsert(payload, { onConflict: "job_id,user_id" })
+        .insert(payload)
         .select("*")
         .single();
 
@@ -255,7 +255,7 @@ export function useAdoptionExperience({
       return new Set(events.map((event) => event.signal).filter(Boolean)).size > 1;
     }).length;
 
-    const finalDecisions = decisions.filter((item) => item.stage === "final");
+    const finalDecisions = decisions.filter((item) => item.stage === "before_fieldcall");
     const aligned = finalDecisions.filter((item) => {
       if (item.decision === "DELAY") return item.fieldcall_signal === "WATCH";
       return item.decision === item.fieldcall_signal;

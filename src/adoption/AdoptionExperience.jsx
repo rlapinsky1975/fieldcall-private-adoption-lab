@@ -167,15 +167,7 @@ export function ActivationChecklist({
 }) {
   const c = useCopy(language);
   if (!activation || activation.complete) {
-    return (
-      <div className="fcx-activation-complete">
-        <span>✓</span>
-        <div>
-          <strong>{c.monitoring}</strong>
-          <p>{c.setupHelp}</p>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   return (
@@ -221,7 +213,6 @@ export function FieldCallRecord({ language = "en", record }) {
       <div className="fcx-card-heading compact">
         <div>
           <span className="fcx-eyebrow">FIELD PROOF</span>
-          <h3>{c.recordTitle}</h3>
           <p>{c.recordHelp}</p>
         </div>
       </div>
@@ -289,90 +280,49 @@ export function ContractorDecisionPanel({
   jobId,
   fieldcallSignal,
   existingDecision,
-  onSave,
 }) {
   const c = useCopy(language);
-  const [decision, setDecision] = useState(existingDecision?.decision || "");
-  const [localContext, setLocalContext] = useState(existingDecision?.local_context || "");
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(Boolean(existingDecision));
+  if (!jobId || !existingDecision) return null;
 
-  useEffect(() => {
-    setDecision(existingDecision?.decision || "");
-    setLocalContext(existingDecision?.local_context || "");
-    setSaved(Boolean(existingDecision));
-  }, [existingDecision?.id]);
-
-  if (!jobId) return null;
-
-  async function handleSave() {
-    if (!decision) return;
-    setSaving(true);
-    const ok = await onSave({ decision, localContext });
-    setSaving(false);
-    setSaved(Boolean(ok));
-  }
-
-  const saveLabel =
-    decision === "GO"
-      ? c.saveGoDecision
-      : decision === "DELAY"
-      ? c.saveDelayDecision
-      : decision === "NO GO"
-      ? c.saveNoGoDecision
-      : c.saveDecision;
-
-  const savedLabel =
-    decision === "GO"
-      ? c.goDecisionSaved
-      : decision === "DELAY"
-      ? c.delayDecisionSaved
-      : c.noGoDecisionSaved;
+  const recordedAt = existingDecision.decided_at
+    ? new Date(existingDecision.decided_at).toLocaleString(language === "es" ? "es-US" : "en-US", {
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      })
+    : "";
 
   return (
-    <section className="fcx-card fcx-decision">
+    <section className="fcx-card fcx-decision fcx-decision-locked">
       <div className="fcx-card-heading compact">
         <div>
-          <span className="fcx-eyebrow">{c.yourDecision.toUpperCase()}</span>
-          <h3>{c.finalTitle}</h3>
-          <p>{c.finalHelp}</p>
+          <span className="fcx-eyebrow">{language === "es" ? "DECISIÓN REGISTRADA" : "RECORDED DECISION"}</span>
+          <h3>{existingDecision.decision}</h3>
+          <p>
+            {language === "es"
+              ? "Esta fue su lectura antes de ver la recomendación de FieldCall."
+              : "This was your read before seeing FieldCall’s recommendation."}
+          </p>
         </div>
       </div>
-
-      <div className="fcx-recommendation-block">
-        <span>{c.comparison}</span>
-        <SignalPill signal={fieldcallSignal} />
+      <div className="fcx-comparison-row">
+        <div>
+          <span>{language === "es" ? "Su decisión" : "Your decision"}</span>
+          <strong>{existingDecision.decision}</strong>
+        </div>
+        <div>
+          <span>{c.comparison}</span>
+          <SignalPill signal={fieldcallSignal} />
+        </div>
       </div>
-
-      <div className="fcx-decision-divider" aria-hidden="true">↓</div>
-      <div className="fcx-decision-choice-label">{c.yourDecision}</div>
-
-      <div className="fcx-choice-grid">
-        {["GO", "DELAY", "NO GO"].map((value) => (
-          <button
-            type="button"
-            key={value}
-            className={decision === value ? "is-selected" : ""}
-            onClick={() => { setDecision(value); setSaved(false); }}
-          >
-            {value === "GO" ? c.go : value === "DELAY" ? c.delay : c.noGo}
-          </button>
-        ))}
-      </div>
-
-      <label className="fcx-text-field">
-        <span>{c.localContext}</span>
-        <small className="fcx-field-help">{c.localContextHelp}</small>
-        <textarea
-          value={localContext}
-          onChange={(event) => { setLocalContext(event.target.value); setSaved(false); }}
-          placeholder={c.localPlaceholder}
-        />
-      </label>
-
-      <button type="button" className="fcx-primary" onClick={handleSave} disabled={!decision || saving}>
-        {saving ? "…" : saved ? `✓ ${savedLabel}` : saveLabel}
-      </button>
+      {existingDecision.local_context && (
+        <div className="fcx-locked-context">
+          <strong>{c.localContext}</strong>
+          <p>{existingDecision.local_context}</p>
+        </div>
+      )}
+      {recordedAt && <small className="fcx-recorded-at">{language === "es" ? "Registrado" : "Recorded"} {recordedAt}</small>}
     </section>
   );
 }
@@ -457,7 +407,8 @@ export function SignalTimeline({ language = "en", events = [] }) {
       event,
       definingReason: getMonitoringReason(event, chronologicalEvents[index - 1], language),
     }))
-    .reverse();
+    .reverse()
+    .slice(0, 5);
 
   return (
     <section className="fcx-card fcx-timeline">
@@ -473,7 +424,7 @@ export function SignalTimeline({ language = "en", events = [] }) {
           <p>{c.timelineHelp}</p>
         </div>
         <div className="fcx-timeline-toggle-meta">
-          <span>{events.length} {events.length === 1 ? c.monitoringPoint : c.monitoringPoints}</span>
+          <span>{Math.min(events.length, 5)} {language === "es" ? "más recientes" : "most recent"}</span>
           <strong>{expanded ? "−" : "+"}</strong>
         </div>
       </button>
@@ -507,28 +458,44 @@ export function SignalTimeline({ language = "en", events = [] }) {
 
 export function OutcomeCapture({ language = "en", jobId, existingOutcome, onSave }) {
   const c = useCopy(language);
-  const [actualDecision, setActualDecision] = useState(existingOutcome?.actual_decision || "");
-  const [weatherAffected, setWeatherAffected] = useState(existingOutcome?.weather_materially_affected ?? null);
-  const [fieldcallHelped, setFieldcallHelped] = useState(existingOutcome?.fieldcall_helped ?? null);
-  const [missingContext, setMissingContext] = useState(existingOutcome?.missing_context || "");
+  const [actualDecision, setActualDecision] = useState("");
+  const [weatherAffected, setWeatherAffected] = useState(null);
+  const [fieldcallHelped, setFieldcallHelped] = useState(null);
+  const [missingContext, setMissingContext] = useState("");
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(Boolean(existingOutcome));
-
-  useEffect(() => {
-    setActualDecision(existingOutcome?.actual_decision || "");
-    setWeatherAffected(existingOutcome?.weather_materially_affected ?? null);
-    setFieldcallHelped(existingOutcome?.fieldcall_helped ?? null);
-    setMissingContext(existingOutcome?.missing_context || "");
-    setSaved(Boolean(existingOutcome));
-  }, [existingOutcome?.id]);
 
   if (!jobId) return null;
 
+  if (existingOutcome) {
+    const submittedAt = existingOutcome.submitted_at
+      ? new Date(existingOutcome.submitted_at).toLocaleString(language === "es" ? "es-US" : "en-US", {
+          month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
+        })
+      : "";
+    return (
+      <section className="fcx-card fcx-outcome fcx-outcome-locked">
+        <div className="fcx-card-heading compact">
+          <div>
+            <span className="fcx-eyebrow">{language === "es" ? "RESULTADO REGISTRADO" : "OUTCOME RECORDED"}</span>
+            <h3>✓ {existingOutcome.actual_decision}</h3>
+            <p>{language === "es" ? "Este resultado está guardado y bloqueado." : "This outcome is saved and locked."}</p>
+          </div>
+        </div>
+        <div className="fcx-outcome-summary">
+          <p><strong>{c.weatherAffected}</strong><span>{existingOutcome.weather_materially_affected ? c.yes : c.no}</span></p>
+          <p><strong>{c.helped}</strong><span>{existingOutcome.fieldcall_helped ? c.yes : c.no}</span></p>
+          {existingOutcome.missing_context && <p><strong>{c.missing}</strong><span>{existingOutcome.missing_context}</span></p>}
+        </div>
+        {submittedAt && <small className="fcx-recorded-at">{language === "es" ? "Registrado" : "Recorded"} {submittedAt}</small>}
+      </section>
+    );
+  }
+
   async function handleSave() {
+    if (!actualDecision || weatherAffected === null || fieldcallHelped === null) return;
     setSaving(true);
-    const ok = await onSave({ actualDecision, weatherAffected, fieldcallHelped, missingContext });
+    await onSave({ actualDecision, weatherAffected, fieldcallHelped, missingContext });
     setSaving(false);
-    setSaved(Boolean(ok));
   }
 
   return (
@@ -537,26 +504,22 @@ export function OutcomeCapture({ language = "en", jobId, existingOutcome, onSave
         <div>
           <span className="fcx-eyebrow">OUTCOME</span>
           <h3>{c.outcomeTitle}</h3>
-          <p>{c.outcomeHelp}</p>
+          <p>{language === "es" ? "Registre lo que ocurrió para comparar su decisión, la recomendación y el resultado." : "Record what happened so FieldCall can compare your decision, the recommendation, and the result."}</p>
         </div>
       </div>
-
       <div className="fcx-choice-grid">
         {[["WORKED", c.worked], ["DELAYED", c.delayed], ["CANCELED", c.canceled]].map(([value, label]) => (
-          <button type="button" key={value} className={actualDecision === value ? "is-selected" : ""} onClick={() => { setActualDecision(value); setSaved(false); }}>{label}</button>
+          <button type="button" key={value} className={actualDecision === value ? "is-selected" : ""} onClick={() => setActualDecision(value)}>{label}</button>
         ))}
       </div>
-
-      <BinaryQuestion label={c.weatherAffected} value={weatherAffected} onChange={(value) => { setWeatherAffected(value); setSaved(false); }} copy={c} />
-      <BinaryQuestion label={c.helped} value={fieldcallHelped} onChange={(value) => { setFieldcallHelped(value); setSaved(false); }} copy={c} />
-
+      <BinaryQuestion label={c.weatherAffected} value={weatherAffected} onChange={setWeatherAffected} copy={c} />
+      <BinaryQuestion label={c.helped} value={fieldcallHelped} onChange={setFieldcallHelped} copy={c} />
       <label className="fcx-text-field">
         <span>{c.missing}</span>
-        <textarea value={missingContext} onChange={(event) => { setMissingContext(event.target.value); setSaved(false); }} placeholder={c.missingPlaceholder} />
+        <textarea value={missingContext} onChange={(event) => setMissingContext(event.target.value)} placeholder={c.missingPlaceholder} />
       </label>
-
       <button type="button" className="fcx-primary" onClick={handleSave} disabled={!actualDecision || weatherAffected === null || fieldcallHelped === null || saving}>
-        {saving ? "…" : saved ? `✓ ${c.outcomeSaved}` : c.saveOutcome}
+        {saving ? "…" : c.saveOutcome}
       </button>
     </section>
   );

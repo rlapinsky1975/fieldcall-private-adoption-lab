@@ -161,6 +161,7 @@ function normalizeGuestAssessmentPayload(rawPayload) {
   minimumWorkableWindowHours: 2,
   skipBackendHistorySave: true,
   shadowDecision: "",
+shadowModeEnabled: false,
   };
 }
 
@@ -265,6 +266,7 @@ const [form, setForm] = useState({
   finalCallTime: "15:00",
   saveToQueue: false,
   shadowDecision: "",
+  shadowModeEnabled: true,
 });
 
   const [result, setResult] = useState(null);
@@ -1775,6 +1777,7 @@ async function saveCompanySettings() {
   ),
   saveToQueue: false,
   shadowDecision: "",
+  shadowModeEnabled: adoption.journey.shadow_mode_enabled !== false,
 });
     setScreen("intake");
   }
@@ -2113,7 +2116,7 @@ async function saveCompanySettings() {
   });
 
   const savedJob = lastSavedJobRef.current;
-  if (completed && savedJob?.id && form.shadowDecision) {
+  if (completed && savedJob?.id && form.shadowModeEnabled !== false && form.shadowDecision) {
     await adoption.submitDecision({
       jobId: savedJob.id,
       stage: "before_fieldcall",
@@ -2444,6 +2447,7 @@ async function handleManualJobsRefresh() {
       lastResult: null,
       lastCheckedAt: "",
       lastError: "",
+      shadowModeEnabled: jobData.shadowModeEnabled !== false,
     };
 
     const existingJob = savedJobs.find((job) => {
@@ -2624,6 +2628,7 @@ async function saveJobToBackend(job) {
     ...(job.timeZone ? { time_zone: job.timeZone } : {}),
     status: job.status || "active",
     call_made_at: job.callMadeAt || null,
+    shadow_mode_enabled: job.shadowModeEnabled !== false,
   };
 
   const { data, error } = await supabase
@@ -2803,6 +2808,7 @@ autoFinalCallStatus: row.auto_final_call_status || "",
 autoFinalCallCompletedAt: row.auto_final_call_completed_at || "",
 autoFinalCallError: row.auto_final_call_error || "",
 notificationSeenAt: row.notification_seen_at || "",
+shadowModeEnabled: row.shadow_mode_enabled === true,
   };
 }
 
@@ -3391,8 +3397,8 @@ const currentResultJobId =
   result?.savedJobId ||
   "";
 const currentJobExperience = adoption.getJobExperience(currentResultJobId);
-const currentFinalDecision = currentJobExperience.decisions.find(
-  (decision) => decision.stage === "final"
+const currentRecordedDecision = currentJobExperience.decisions.find(
+  (decision) => decision.stage === "before_fieldcall"
 );
 const currentResultJobHasFinalResult = currentResultJob
   ? isSavedJobFinalResult(currentResultJob)
@@ -3400,13 +3406,17 @@ const currentResultJobHasFinalResult = currentResultJob
 const currentResultJobFeedbackRating = currentResultJob?.feedbackRating || "";
 
 const callsMadeJobs = savedJobs
-  .filter((job) => isSavedJobFinalResult(job) && hasWorkDatePassed(job))
+  .filter((job) => {
+    if (!isSavedJobFinalResult(job) || !hasWorkDatePassed(job)) return false;
+    if (job.shadowModeEnabled !== true) return true;
+    return Boolean(adoption.getJobExperience(job.backendId || job.id).outcome);
+  })
   .sort(sortNewestCallFirst)
   .slice(0, 10);
 
 const visibleActiveJobs = savedJobs.filter((job) => {
   if (!isSavedJobFinalResult(job)) return true;
-
+  if (job.shadowModeEnabled === true && !adoption.getJobExperience(job.backendId || job.id).outcome) return true;
   return !hasWorkDatePassed(job);
 });
 
@@ -3466,6 +3476,7 @@ const dashboardReviewJobs = visibleActiveJobs
   .filter(
     (job) =>
       isSameWorkDate(job.workDate, new Date()) ||
+      (job.shadowModeEnabled === true && isSavedJobFinalResult(job) && !adoption.getJobExperience(job.backendId || job.id).outcome) ||
       isSavedJobFinalResult(job) ||
       isDashboardActionRequired(job) ||
       isDashboardElevatedPreliminaryRisk(job)
@@ -3498,8 +3509,21 @@ function renderJobCard(job, options = {}) {
     showActionRequired = false,
   } = options;
   const queueTiming = getAssessmentTiming(job);
-  const status = getJobStatus(job);
   const hasFinalResult = isSavedJobFinalResult(job);
+  const outcomeNeeded =
+    job.shadowModeEnabled === true &&
+    hasFinalResult &&
+    !adoption.getJobExperience(job.backendId || job.id).outcome;
+  const status = outcomeNeeded
+    ? {
+        label: "OUTCOME NEEDED",
+        color: "#d97706",
+        bg: "#fffbeb",
+        border: "#fde68a",
+        text: "#92400e",
+        cardBg: "linear-gradient(90deg, #fffbeb 0%, #ffffff 45%)",
+      }
+    : getJobStatus(job);
   const hasAnyResult = Boolean(job.lastResult);
   const isAutoFinalPrepared = isSavedJobAutoPrepared(job);
   const finalResultTime = getSavedJobFinalResultTime(job);
@@ -4374,7 +4398,7 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
 </div>
             </div>
 
-            {adoption.journey?.show_field_proof_on_dashboard !== false && (
+            {adoption.journey.shadow_mode_enabled !== false && adoption.journey?.show_field_proof_on_dashboard !== false && (
               <FieldCallRecord language={language} record={adoption.record} />
             )}
 
@@ -5032,10 +5056,14 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
 
               <ShadowModeField
                 language={language}
-                enabled={adoption.journey.shadow_mode_enabled !== false}
+                enabled={form.shadowModeEnabled !== false}
                 value={form.shadowDecision || ""}
                 onChange={(value) => updateField("shadowDecision", value)}
-                onToggle={adoption.setShadowMode}
+                onToggle={(enabled) => {
+                  updateField("shadowModeEnabled", enabled);
+                  if (!enabled) updateField("shadowDecision", "");
+                  adoption.setShadowMode(enabled);
+                }}
               />
 
               {loading && (
@@ -5221,25 +5249,13 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
                 <p style={resultMainReasonStyle}>{getDisplayReason(result, language)}</p>
               </div>
 
-{!guestMode && currentResultJobId && (
-  <>
-    <ContractorDecisionPanel
-      language={language}
-      jobId={currentResultJobId}
-      fieldcallSignal={result.shortSignal}
-      existingDecision={currentFinalDecision}
-      onSave={({ decision, localContext }) =>
-        adoption.submitDecision({
-          jobId: currentResultJobId,
-          stage: "final",
-          decision,
-          localContext,
-          fieldcallSignal: result.shortSignal,
-        })
-      }
-    />
-
-  </>
+{!guestMode && currentResultJobId && currentResultJob?.shadowModeEnabled === true && currentRecordedDecision && (
+  <ContractorDecisionPanel
+    language={language}
+    jobId={currentResultJobId}
+    fieldcallSignal={result.shortSignal}
+    existingDecision={currentRecordedDecision}
+  />
 )}
 
 {guestMode ? (
@@ -5485,7 +5501,8 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
 
 {!guestMode &&
   currentResultJob &&
-  hasWorkDatePassed(currentResultJob) && (
+  currentResultJob.shadowModeEnabled === true &&
+  isSavedJobFinalResult(currentResultJob) && (
     <OutcomeCapture
       language={language}
       jobId={currentResultJobId}
@@ -7034,6 +7051,7 @@ finalCallDueAt: job.finalCallDueAt || "",
 timeZone: job.timeZone || "",
 saveToQueue: false,
 shadowDecision: "",
+  shadowModeEnabled: job.shadowModeEnabled === true,
   };
 }
 
