@@ -3526,24 +3526,27 @@ function isDashboardElevatedPreliminaryRisk(job) {
   );
 }
 
-const dashboardReviewJobs = visibleActiveJobs
+const dashboardNeedsReviewJobs = visibleActiveJobs
   .filter((job) => {
-    const hasFinalResult = isSavedJobFinalResult(job);
-
     // Only an automatically prepared final call creates a review task. A final
     // call run manually was already viewed by the user who ran it. Opening an
     // auto-prepared recommendation through Review Call completes the task; the
     // real-world contractor outcome is captured separately in FieldProof.
-    if (hasFinalResult) {
-      return isSavedJobAutoPrepared(job) && !job.notificationSeenAt;
-    }
-
     return (
+      isSavedJobFinalResult(job) &&
+      isSavedJobAutoPrepared(job) &&
+      !job.notificationSeenAt
+    );
+  });
+
+const dashboardReviewJobs = visibleActiveJobs
+  .filter(
+    (job) =>
       isSameWorkDate(job.workDate, new Date()) ||
+      isSavedJobFinalResult(job) ||
       isDashboardActionRequired(job) ||
       isDashboardElevatedPreliminaryRisk(job)
-    );
-  })
+  )
   .sort((a, b) => {
     const actionDifference =
       Number(isDashboardActionRequired(b)) -
@@ -3563,11 +3566,7 @@ const dashboardReviewJobIds = new Set(
 );
 
 const dashboardPreliminaryJobs = visibleActiveJobs
-  .filter(
-    (job) =>
-      !dashboardReviewJobIds.has(job.id) &&
-      !isSavedJobFinalResult(job)
-  )
+  .filter((job) => !dashboardReviewJobIds.has(job.id))
   .sort(sortByWorkDateSoonestFirst);
 
 function renderJobCard(job, options = {}) {
@@ -3577,6 +3576,10 @@ function renderJobCard(job, options = {}) {
   } = options;
   const queueTiming = getAssessmentTiming(job);
   const hasFinalResult = isSavedJobFinalResult(job);
+  const finalCallNeedsReview =
+    hasFinalResult &&
+    isSavedJobAutoPrepared(job) &&
+    !job.notificationSeenAt;
   const outcomeNeeded =
     job.shadowModeEnabled === true &&
     hasFinalResult &&
@@ -3724,10 +3727,14 @@ const showFallbackActions =
           <div style={finalJobActionRowStyle}>
             <button
               type="button"
-              onClick={() => reviewSavedFinalCall(job)}
+              onClick={() =>
+                finalCallNeedsReview
+                  ? reviewSavedFinalCall(job)
+                  : viewSavedJob(job)
+              }
               style={reviewCallButtonStyle}
             >
-              {t("reviewCall")}
+              {finalCallNeedsReview ? t("reviewCall") : t("viewCall")}
             </button>
 
             <button
@@ -4370,34 +4377,34 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
 
 {savedJobs.length > 0 && (
   <div style={jobListStyle}>
-    {dashboardReviewJobs.length > 0 && (
+    {dashboardNeedsReviewJobs.length > 0 && (
       <>
         <div style={queueSectionHeaderStyle}>
           <div style={sectionTitleWithIconStyle}>
             <span style={amberSectionIconStyle}>!</span>
             <div>
               <h3 style={queueSectionTitleStyle}>
-                {dashboardReviewJobs.length === 1
+                {dashboardNeedsReviewJobs.length === 1
                   ? t("oneCallNeedsReview")
-                  : t("multipleCallsNeedReview", { count: dashboardReviewJobs.length })}
+                  : t("multipleCallsNeedReview", { count: dashboardNeedsReviewJobs.length })}
               </h3>
               <p style={queueSectionHelpStyle}>{t("callsToReviewHelp")}</p>
             </div>
           </div>
         </div>
-
-        {dashboardReviewJobs.map((job) => {
-          const actionRequired = isDashboardActionRequired(job);
-          const elevatedPreliminaryRisk =
-            isDashboardElevatedPreliminaryRisk(job);
-
-          return renderJobCard(job, {
-            showReason: actionRequired || elevatedPreliminaryRisk,
-            showActionRequired: actionRequired,
-          });
-        })}
       </>
     )}
+
+    {dashboardReviewJobs.map((job) => {
+      const actionRequired = isDashboardActionRequired(job);
+      const elevatedPreliminaryRisk =
+        isDashboardElevatedPreliminaryRisk(job);
+
+      return renderJobCard(job, {
+        showReason: actionRequired || elevatedPreliminaryRisk,
+        showActionRequired: actionRequired,
+      });
+    })}
 
     <button
       onClick={() => setShowPreliminaryJobs(!showPreliminaryJobs)}
