@@ -2907,7 +2907,7 @@ async function markAutoFinalNotificationSeen(jobId) {
   }
 }
 
-async function reviewAutoPreparedFinalCall(job) {
+async function reviewSavedFinalCall(job) {
   await markAutoFinalNotificationSeen(job.id);
   viewSavedJob({
     ...job,
@@ -3527,14 +3527,23 @@ function isDashboardElevatedPreliminaryRisk(job) {
 }
 
 const dashboardReviewJobs = visibleActiveJobs
-  .filter(
-    (job) =>
+  .filter((job) => {
+    const hasFinalResult = isSavedJobFinalResult(job);
+
+    // Only an automatically prepared final call creates a review task. A final
+    // call run manually was already viewed by the user who ran it. Opening an
+    // auto-prepared recommendation through Review Call completes the task; the
+    // real-world contractor outcome is captured separately in FieldProof.
+    if (hasFinalResult) {
+      return isSavedJobAutoPrepared(job) && !job.notificationSeenAt;
+    }
+
+    return (
       isSameWorkDate(job.workDate, new Date()) ||
-      (job.shadowModeEnabled === true && isSavedJobFinalResult(job) && !adoption.getJobExperience(job.backendId || job.id).outcome) ||
-      isSavedJobFinalResult(job) ||
       isDashboardActionRequired(job) ||
       isDashboardElevatedPreliminaryRisk(job)
-  )
+    );
+  })
   .sort((a, b) => {
     const actionDifference =
       Number(isDashboardActionRequired(b)) -
@@ -3554,7 +3563,11 @@ const dashboardReviewJobIds = new Set(
 );
 
 const dashboardPreliminaryJobs = visibleActiveJobs
-  .filter((job) => !dashboardReviewJobIds.has(job.id))
+  .filter(
+    (job) =>
+      !dashboardReviewJobIds.has(job.id) &&
+      !isSavedJobFinalResult(job)
+  )
   .sort(sortByWorkDateSoonestFirst);
 
 function renderJobCard(job, options = {}) {
@@ -3711,7 +3724,7 @@ const showFallbackActions =
           <div style={finalJobActionRowStyle}>
             <button
               type="button"
-              onClick={() => viewSavedJob(job)}
+              onClick={() => reviewSavedFinalCall(job)}
               style={reviewCallButtonStyle}
             >
               {t("reviewCall")}
@@ -4357,40 +4370,34 @@ if ((!session || (!activeCompanyId && screen !== "resetPassword")) && !guestMode
 
 {savedJobs.length > 0 && (
   <div style={jobListStyle}>
-    <div style={queueSectionHeaderStyle}>
-      <div style={sectionTitleWithIconStyle}>
-        <span style={dashboardReviewJobs.length ? amberSectionIconStyle : greenSectionIconStyle}>
-          {dashboardReviewJobs.length ? "!" : "✓"}
-        </span>
-        <div>
-          <h3 style={queueSectionTitleStyle}>
-            {dashboardReviewJobs.length === 1
-              ? t("oneCallNeedsReview")
-              : dashboardReviewJobs.length > 1
-              ? t("multipleCallsNeedReview", { count: dashboardReviewJobs.length })
-              : t("callsToReview")}
-          </h3>
-          <p style={queueSectionHelpStyle}>{t("callsToReviewHelp")}</p>
+    {dashboardReviewJobs.length > 0 && (
+      <>
+        <div style={queueSectionHeaderStyle}>
+          <div style={sectionTitleWithIconStyle}>
+            <span style={amberSectionIconStyle}>!</span>
+            <div>
+              <h3 style={queueSectionTitleStyle}>
+                {dashboardReviewJobs.length === 1
+                  ? t("oneCallNeedsReview")
+                  : t("multipleCallsNeedReview", { count: dashboardReviewJobs.length })}
+              </h3>
+              <p style={queueSectionHelpStyle}>{t("callsToReviewHelp")}</p>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
 
-    {dashboardReviewJobs.length === 0 && (
-      <div style={collapsedQueueStyle}>
-        <span>{t("noCallsToReview")}</span>
-      </div>
+        {dashboardReviewJobs.map((job) => {
+          const actionRequired = isDashboardActionRequired(job);
+          const elevatedPreliminaryRisk =
+            isDashboardElevatedPreliminaryRisk(job);
+
+          return renderJobCard(job, {
+            showReason: actionRequired || elevatedPreliminaryRisk,
+            showActionRequired: actionRequired,
+          });
+        })}
+      </>
     )}
-
-    {dashboardReviewJobs.map((job) => {
-      const actionRequired = isDashboardActionRequired(job);
-      const elevatedPreliminaryRisk =
-        isDashboardElevatedPreliminaryRisk(job);
-
-      return renderJobCard(job, {
-        showReason: actionRequired || elevatedPreliminaryRisk,
-        showActionRequired: actionRequired,
-      });
-    })}
 
     <button
       onClick={() => setShowPreliminaryJobs(!showPreliminaryJobs)}
@@ -5780,7 +5787,7 @@ createCompanyHelper: "Create your company in about 60 seconds. No credit card re
     callsToReview: "Calls to Review",
     oneCallNeedsReview: "1 Call Needs Review",
     multipleCallsNeedReview: "{count} Calls Need Review",
-    callsToReviewHelp: "Confirm the contractor outcome.",
+    callsToReviewHelp: "Review the final recommendation.",
     noCallsToReview: "No calls need review right now.",
     tomorrowsCalls: "Tomorrow's Calls",
     tomorrowsCallsHelp: "Calls that need communication before tomorrow’s work.",
@@ -6108,7 +6115,7 @@ createCompanyHelper: "Cree su empresa en aproximadamente 60 segundos. No se requ
     callsToReview: "Decisiones para revisar",
     oneCallNeedsReview: "1 decisión necesita revisión",
     multipleCallsNeedReview: "{count} decisiones necesitan revisión",
-    callsToReviewHelp: "Confirme el resultado del contratista.",
+    callsToReviewHelp: "Revise la recomendación final.",
     noCallsToReview: "No hay decisiones que revisar ahora.",
     tomorrowsCalls: "Decisiones de mañana",
     tomorrowsCallsHelp: "Decisiones que necesitan comunicación antes del trabajo de mañana.",
@@ -10969,9 +10976,9 @@ const jobListStyle = {
 };
 
 const queueSectionHeaderStyle = {
-  marginTop: "3px",
-  padding: "6px 9px",
-  borderRadius: "14px",
+  marginTop: "1px",
+  padding: "4px 8px",
+  borderRadius: "12px",
   background: "#f8fafc",
   border: "1px solid #e2e8f0",
   display: "flex",
@@ -10983,7 +10990,7 @@ const queueSectionHeaderStyle = {
 const sectionTitleWithIconStyle = {
   display: "flex",
   alignItems: "center",
-  gap: "9px",
+  gap: "7px",
   minWidth: 0,
 };
 
@@ -11008,9 +11015,11 @@ const greenSectionIconStyle = {
 
 const amberSectionIconStyle = {
   ...actionRequiredIconStyle,
+  width: "20px",
+  height: "20px",
   background: "#f5c542",
   color: "#713f12",
-  fontSize: "13px",
+  fontSize: "11px",
 };
 
 const actionRequiredBadgeStyle = {
@@ -11030,16 +11039,16 @@ const actionRequiredBadgeStyle = {
 
 const queueSectionTitleStyle = {
   margin: 0,
-  fontSize: "14px",
-  lineHeight: "17px",
+  fontSize: "13px",
+  lineHeight: "15px",
   color: "#0f172a",
   fontWeight: 900,
 };
 
 const queueSectionHelpStyle = {
-  margin: "3px 0 0",
-  fontSize: "11px",
-  lineHeight: "15px",
+  margin: "1px 0 0",
+  fontSize: "9.5px",
+  lineHeight: "12px",
   color: "#64748b",
   fontWeight: 700,
 };
